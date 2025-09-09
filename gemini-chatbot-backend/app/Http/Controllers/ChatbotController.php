@@ -11,6 +11,10 @@ class ChatbotController extends Controller
 {
     public function chat(Request $request)
     {
+        if ($request->isMethod('OPTIONS')) {
+            return $this->addCorsHeaders(response()->json([]));
+        }
+
         $request->validate([
             'message' => 'required|string',
             'session_id' => 'nullable|string'
@@ -20,34 +24,35 @@ class ChatbotController extends Controller
         $sessionId = $request->input('session_id', 'default');
 
         try {
-            // 1. Cari di database kampus terlebih dahulu
-            $dbResponse = $this->searchInDatabase($message);
-
-            if ($dbResponse) {
-                // Simpan ke chat history
-                $this->saveToHistory($message, $dbResponse, $sessionId, 'database');
-                return response()->json([
-                    'response' => $dbResponse,
-                    'source' => 'database'
-                ]);
-            }
-
-            // 2. Jika tidak ditemukan di database, gunakan Gemini AI
-            $geminiResponse = $this->getGeminiResponse($message);
+            // Gunakan Advanced RAG service
+            $ragService = new \App\Services\AdvancedRagService();
+            $response = $ragService->smartQuery($message);
 
             // Simpan ke chat history
-            $this->saveToHistory($message, $geminiResponse, $sessionId, 'gemini');
+            $this->saveToHistory($message, $response, $sessionId, 'advanced_rag');
 
-            return response()->json([
-                'response' => $geminiResponse,
-                'source' => 'gemini'
-            ]);
+            return $this->addCorsHeaders(response()->json([
+                'response' => $response,
+                'source' => 'advanced_rag'
+            ]));
         } catch (\Exception $e) {
             Log::error('Chat error: ' . $e->getMessage());
-            return response()->json([
-                'error' => 'Terjadi kesalahan: ' . $e->getMessage()
-            ], 500);
+
+            // Fallback ke basic response
+            return $this->addCorsHeaders(response()->json([
+                'response' => 'Maaf, saya sedang mengalami gangguan teknis. Silakan coba lagi nanti.',
+                'source' => 'fallback'
+            ]));
         }
+    }
+
+    private function addCorsHeaders($response)
+    {
+        return $response
+            ->header('Access-Control-Allow-Origin', 'http://localhost:5173')
+            ->header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
+            ->header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With')
+            ->header('Access-Control-Allow-Credentials', 'true');
     }
 
     private function searchInDatabase($message)
@@ -59,13 +64,9 @@ class ChatbotController extends Controller
             strpos($message, 'pengumuman') !== false ||
             strpos($message, 'pengumuman terbaru') !== false
         ) {
-
-            $pengumuman = DB::table('pengumuman')
-                ->orderBy('tanggal', 'desc')
-                ->first();
-
+            $pengumuman = DB::table('pengumuman')->get();
             if ($pengumuman) {
-                return "PENGUMUMAN TERBARU\n\n" .
+                return "PENGUMUMAN\n\n" .
                     "Judul: " . $pengumuman->judul .
                     "\nTanggal: " . $pengumuman->tanggal .
                     "\n\nIsi: " . substr($pengumuman->isi, 0, 200) .
