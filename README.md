@@ -37,7 +37,6 @@ php artisan serve
 npm run dev
 ```
 # 📷 Screenshot
-
-
+<p align="center"> <img src="img/screenshot_1.png" alt="screenshot" width="80%"/> </p>
 # 🌟 Support
 Kalau Repo ini bermanfaat, jangan lupa kasih ⭐ di GitHub ya!
