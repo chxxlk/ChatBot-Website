@@ -1,0 +1,58 @@
+# Logs & debugging
+*.log
+*.log.*
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Environment files (sensitive)
+.env
+.env.*.local
+.env.backup
+.env.production
+
+# Laravel specific
+/public/storage
+/storage/*.key
+/storage/debugbar
+/storage/logs
+/storage/framework/cache/*
+/storage/framework/sessions/*
+/storage/framework/testing/*
+/storage/framework/views/*
+/bootstrap/cache/*.php
+
+# Compiled output
+/node_modules
+/vendor
+/public/build
+/public/hot
+
+# IDE & editor settings
+.vscode/*
+!.vscode/extensions.json
+.idea
+.fleet
+.nova
+.zed
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# PHPUnit & PHP tools cache
+.phpunit.result.cache
+/.phpunit.cache
+.phpactor.json
+
+# Laravel Sail / Homestead (if used)
+docker-compose.override.yml
+Homestead.yaml
+Homestead.json
+
+# Misc
+*.swp
+*.swo
+*.swn
