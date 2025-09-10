@@ -19,16 +19,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isWelcome
             ? 'bg-blue-500 text-white'
             : 'bg-gray-200 text-gray-800'
         }`}
-      >
-        {isWelcome && (
-          <div className="flex items-center mb-2">
-            <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center mr-2">
-              <span className="text-white text-sm">B</span>
-            </div>
-            <span className="text-xs font-semibold">Bernadus</span>
-          </div>
-        )}
-        
+      >        
         <p className="whitespace-pre-wrap">{message.text}</p>
         
         <div className="flex justify-between items-center mt-1">

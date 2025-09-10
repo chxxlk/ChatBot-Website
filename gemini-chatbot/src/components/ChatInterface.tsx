@@ -52,7 +52,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
           // Fallback welcome message
           const fallbackMsg: Message = {
             id: 'welcome-fallback',
-            text: 'Halo! 👋 Saya Bernadus, Asisten Virtual dari Program Studi Teknologi Informasi UKSW. Ada yang bisa saya bantu?',
+            text: 'Halo! 👋 Saya Fernando, Asisten Virtual dari Program Studi Teknologi Informasi UKSW. Ada yang bisa saya bantu?',
             sender: 'ai',
             timestamp: new Date(),
             source: 'system',
@@ -81,10 +81,10 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
       <div className="bg-white shadow-sm p-4 flex justify-between items-center border-b">
         <div className="flex items-center space-x-3">
           <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
-            <span className="text-white font-bold text-lg">B</span>
+            <span className="text-white font-bold text-lg"></span>
           </div>
           <div>
-            <h1 className="text-xl font-semibold text-gray-800">Bernadus</h1>
+            <h1 className="text-xl font-semibold text-gray-800">Fernando</h1>
             <p className="text-sm text-gray-600">Asisten Virtual TI UKSW</p>
           </div>
         </div>
@@ -152,7 +152,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
       {/* Footer dengan informasi chatbot */}
       <div className="bg-gray-800 text-white p-2 text-center text-xs">
-        <p>🤖 Bernadus - Asisten Virtual Program Studi Teknologi Informasi</p>
+        <p>🤖 Fernando - Asisten Virtual Program Studi Teknologi Informasi</p>
         <p>Universitas Kristen Satya Wacana</p>
       </div>
     </div>

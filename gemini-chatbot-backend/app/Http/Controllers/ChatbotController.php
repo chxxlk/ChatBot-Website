@@ -23,9 +23,12 @@ class ChatbotController extends Controller
         $sessionId = $request->input('session_id', 'default');
 
         try {
-            // Gunakan Advanced RAG service
-            $ragService = new \App\Services\AdvancedRagService();
-            $response = $ragService->smartQuery($message);
+            // GUNAKAN AdvancedRagService BUKAN RagService
+            // $advancedRagService = new \App\Services\AdvancedRagService();
+            $RageService = new \App\Services\RagService();
+
+            // $response = $advancedRagService->smartQuery($message);
+            $response = $RageService->queryWithContext($message);
 
             // Simpan ke chat history
             $this->saveToHistory($message, $response, $sessionId, 'advanced_rag');
@@ -37,11 +40,43 @@ class ChatbotController extends Controller
         } catch (\Exception $e) {
             Log::error('Chat error: ' . $e->getMessage());
 
-            // Fallback ke basic response
-            return $this->addCorsHeaders(response()->json([
-                'response' => 'Maaf, saya sedang mengalami gangguan teknis. Silakan coba lagi nanti. ',
-                'source' => 'fallback'
-            ]));
+            // Fallback ke RagService biasa jika AdvancedRagService error
+            try {
+                $ragService = new \App\Services\RagService();
+                $fallbackResponse = $ragService->queryWithContext($message);
+
+                $this->saveToHistory($message, $fallbackResponse, $sessionId, 'rag_fallback');
+
+                return $this->addCorsHeaders(response()->json([
+                    'response' => $fallbackResponse,
+                    'source' => 'rag_fallback'
+                ]));
+            } catch (\Exception $fallbackError) {
+                return $this->addCorsHeaders(response()->json([
+                    'error' => 'Terjadi kesalahan internal. Silakan coba lagi nanti.'
+                ], 500));
+            }
+        }
+    }
+
+    public function semanticSearchTest(Request $request)
+    {
+        try {
+            $query = $request->input('query', '');
+            $ragService = new \App\Services\RagService();
+
+            // Test semantic search
+            $context = $ragService->getSemanticRelevantData($query);
+
+            return response()->json([
+                'query' => $query,
+                'context' => $context,
+                'success' => true
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'Semantic search test failed: ' . $e->getMessage()
+            ], 500);
         }
     }
 

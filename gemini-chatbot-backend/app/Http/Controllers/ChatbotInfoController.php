@@ -3,15 +3,21 @@
 namespace App\Http\Controllers;
 use App\Services\RagService;
 use Illuminate\Http\Request;
+// use App\Services\AdvancedRagService;
 
 class ChatbotInfoController extends Controller
 {
     protected $ragService;
 
-    public function __construct(RagService $ragService)
+    public function __construct(RagService $ragService) // UPDATE TYPE HINT
     {
         $this->ragService = $ragService;
     }
+
+    // public function __construct(RagService $ragService)
+    // {
+    //     $this->ragService = $ragService;
+    // }
 
     public function getInfo()
     {

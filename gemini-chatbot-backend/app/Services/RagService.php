@@ -10,11 +10,13 @@ class RagService
 {
     private $apiKey;
     private $chatbotIdentity;
+    private $embeddingService;
 
     public function __construct()
     {
         $this->apiKey = env('GEMINI_API_KEY');
         $this->chatbotIdentity = $this->getChatbotIdentity();
+        $this->embeddingService = new EmbeddingService();
     }
 
     private function getChatbotIdentity()
@@ -33,6 +35,12 @@ class RagService
 
     public function queryWithContext($userQuery)
     {
+        // 0. Cek dulu jika ini pertanyaan tentang identitas
+        $identityResponse = $this->handleIdentityQuery($userQuery);
+        if ($identityResponse) {
+            return $identityResponse;
+        }
+
         // 1. Retrieve: Ambil data relevan dari database
         $context = $this->retrieveRelevantData($userQuery);
 
@@ -55,17 +63,78 @@ class RagService
         $context .= "Program Studi: {$this->chatbotIdentity['department']}\n";
         $context .= "Universitas: {$this->chatbotIdentity['university']}\n\n";
 
-        // Cari data relevan dari semua tabel
-        $context .= $this->getPengumumanData($query);
-        $context .= $this->getProdiData($query);
-        $context .= $this->getHimpunanData($query);
-        $context .= $this->getLowonganAsistenData($query);
-        $context .= $this->getBeritaAlumniData($query);
-        // $context .= $this->getDosenData($query);
+        // Gunakan semantic search untuk mencari data yang relevan
+        $context .= $this->getSemanticRelevantData($query);
 
         return $context;
     }
 
+    public function getSemanticRelevantData($query)
+    {
+        $result = "";
+        
+        // Konfigurasi semantic search untuk setiap tabel
+        $tablesConfig = [
+            'pengumuman' => [
+                'columns' => ['judul', 'isi'],
+                'display' => function ($item) {
+                    return "Judul: {$item->judul}\nTanggal: {$item->tanggal}\nIsi: " . substr($item->isi, 0, 200) . "...\n\n";
+                }
+            ],
+            'profil_prodi' => [
+                'columns' => ['visi', 'misi', 'ketua_prodi'],
+                'display' => function ($item) {
+                    return "Visi: " . substr($item->visi, 0, 200) . "\nMisi: " . substr($item->misi, 0, 200) . "\nKetua Prodi: {$item->ketua_prodi}\n\n";
+                }
+            ],
+            'profil_himpunan_mahasiswa' => [
+                'columns' => ['visi', 'misi', 'ketua_umum'],
+                'display' => function ($item) {
+                    return "Visi: " . substr($item->visi, 0, 200) . "\nMisi: " . substr($item->misi, 0, 200) . "\nKetua Umum: {$item->ketua_umum}\nPeriode: {$item->periode}\n\n";
+                }
+            ],
+            'lowongan_asisten_dosen' => [
+                'columns' => ['mata_kuliah', 'kualifikasi'],
+                'display' => function ($item) {
+                    return "Mata Kuliah: {$item->mata_kuliah}\nKualifikasi: " . substr($item->kualifikasi, 0, 200) . "\nDeadline: {$item->deadline}\nKontak: {$item->kontak}\n\n";
+                }
+            ],
+            'berita_alumni' => [
+                'columns' => ['nama_alumni', 'judul_berita', 'isi'],
+                'display' => function ($item) {
+                    return "Nama Alumni: {$item->nama_alumni}\nJudul Berita: {$item->judul_berita}\nIsi: " . substr($item->isi, 0, 200) . "\nTanggal: {$item->tanggal}\n\n";
+                }
+            ]
+        ];
+
+        foreach ($tablesConfig as $tableName => $config) {
+            try {
+                $relevantData = $this->embeddingService->semanticSearch(
+                    $query, 
+                    $tableName, 
+                    $config['columns'],
+                    null, // limit
+                    0.3 // threshold similarity
+                );
+
+                if (!empty($relevantData)) {
+                    $result .= "INFORMASI " . strtoupper(str_replace('_', ' ', $tableName)) . ":\n";
+                    
+                    foreach ($relevantData as $item) {
+                        $result .= $config['display']($item);
+                    }
+                    
+                    $result .= "\n";
+                }
+            } catch (\Exception $e) {
+                Log::error("Semantic search failed for table {$tableName}: " . $e->getMessage());
+                // Fallback to traditional search
+                $result .= $this->{"get" . ucfirst($tableName) . "Data"}($query, true);
+            }
+        }
+
+        return $result;
+    }
     private function getPengumumanData($query)
     {
         if (strpos($query, 'pengumuman') !== false) {
@@ -77,7 +146,7 @@ class RagService
                 foreach ($pengumuman as $p) {
                     $result .= "Judul: {$p->judul}\n";
                     $result .= "Tanggal: {$p->tanggal}\n";
-                    $result .= "Isi: " . substr($p->isi, 0, 200) . "...\n\n";
+                    $result .= "Isi: " . substr($p->isi, 0, 500) . "...\n\n";
                 }
                 return $result;
             }
@@ -177,17 +246,69 @@ class RagService
     private function buildPrompt($userQuery, $context)
     {
         $identity = $this->chatbotIdentity;
-        return <<<PROMPT
-            # IDENTITAS CHATBOT
-            Anda adalah {$identity['name']}, {$identity['role']} dari {$identity['department']} di {$identity['university']}.
 
-            # INSTRUKSI UMUM
-            1. Perkenalkan diri singkat sebagai {$identity['name']} di awal percakapan jika perlu
-            2. Gunakan nada yang {$identity['tone']}
-            3. Berbicaralah dalam {$identity['language']}
-            4. {$identity['limitations']}
-            5. Jika informasi tidak ditemukan, jujur katakan bahwa Anda tidak tahu
-            6. Berikan jawaban yang informatif dan membantu
+        $identityKeywords = ['siapa kamu', 'perkenalkan diri', 'nama kamu', 'identitas', 'kamu siapa'];
+        $isIdentityQuery = false;
+        $needsIntroduction = $this->needsIntroduction($userQuery);
+
+        foreach ($identityKeywords as $keyword) {
+            if (strpos(strtolower($userQuery), $keyword) !== false) {
+                $isIdentityQuery = true;
+                break;
+            }
+        }
+
+        $queryType = $this->analyzeQueryType($userQuery);
+        $isSemanticMatch = !empty(trim($context)) && strpos($context, 'INFORMASI') !== false;
+
+        $relevansiDatabase = $isSemanticMatch ? 'YA' : 'TIDAK';
+
+        $identityInstruction = $isIdentityQuery ?
+            "PERTANYAAN INI TENTANG IDENTITAS ANDA. JAWAB DENGAN MENGGUNAKAN INFORMASI IDENTITAS DI BAWAH DAN JANGAN MENYANGKALNYA." :
+            "Jika ditanya tentang identitas, jawab menggunakan informasi identitas di bawah.";
+
+        $introductionInstruction = $needsIntroduction ?
+            "Jika appropriate, awali dengan perkenalan singkat sebagai {$identity['name']}." :
+            "JANGAN awali dengan perkenalan diri. Langsung berikan jawaban yang diminta.";
+
+        $semanticInstruction = $isSemanticMatch ?
+            "PERTANYAAN INI RELEVAN DENGAN INFORMASI DATABASE. GUNAKAN INFORMASI DI BAWAH UNTUK MENJAWAB DENGAN AKURAT." :
+            "INFORMASI DATABASE TERBATAS. JAWAB BERDASARKAN PENGETAHUAN UMUM TENTANG PERAN ANDA SEBAGAI ASISTEN KAMPUS.";
+
+        return <<<PROMPT
+            # PERINTAH KERAS DAN INSTRUKSI
+            ANDA ADALAH {$identity['name']}, {$identity['role']} dari {$identity['department']} di {$identity['university']}.
+            ANDA BUKAN model bahasa AI umum. ANDA ADALAH asisten virtual khusus untuk kampus.
+
+            # ANALISIS PERTANYAAN:
+            - JENIS: {$queryType}
+            - RELEVANSI DATABASE: {$relevansiDatabase}
+
+            # IDENTITAS ANDA:
+            - NAMA: {$identity['name']}
+            - PERAN: {$identity['role']}
+            - PROGRAM STUDI: {$identity['department']}
+            - UNIVERSITAS: {$identity['university']}
+            - BAHASA: {$identity['language']}
+            - GAYA BICARA: {$identity['tone']}
+
+            # INSTRUKSI KHUSUS:
+            1. {$identityInstruction}
+            2. JANGAN PERNAH mengatakan bahwa Anda adalah model bahasa AI atau tidak memiliki identitas
+            3. SELALU akui bahwa Anda adalah {$identity['name']}, {$identity['role']} dari {$identity['department']}
+            4. Jika ditanya tentang kemampuan, jelaskan bahwa Anda membantu dengan informasi dari database kampus
+            5. Gunakan nada yang {$identity['tone']} dan profesional
+            6. {$introductionInstruction}
+            7. Untuk pertanyaan factual (pengumuman, dosen, dll), langsung berikan jawaban tanpa perkenalan
+            8. Hanya perkenalkan diri jika ditanya tentang identitas atau untuk greeting
+            9. Jawab dengan nada yang {$identity['tone']}
+            10. Gunakan informasi database di bawah jika tersedia
+            
+            # INSTRUKSI KHUSUS LAINNYA:
+            1. {$semanticInstruction}
+            2. JANGAN membuat informasi jika tidak ada di database
+            3. Jika informasi tidak lengkap, jelaskan dengan jujur
+            4. Gunakan format yang mudah dibaca
 
             # INFORMASI DATABASE KAMPUS:
             {$context}
@@ -196,21 +317,123 @@ class RagService
             {$userQuery}
 
             # FORMAT JAWABAN:
-            - Awali dengan salam jika percakapan baru
-            - Gunakan paragraf yang terstruktur rapi
-            - Sertakan informasi yang relevan dari database
+            - Awali dengan salam jika appropriate
+            - Jawab dengan menggunakan informasi identitas Anda
+            - Referensikan informasi dari database jika relevan
             - Akhiri dengan penawaran bantuan lebih lanjut
-
-
-            INSTRUKSI:
-            1. Jawab dalam Bahasa Indonesia yang baik dan sopan
-            2. Gunakan hanya informasi dari database di atas
-            3. Jika informasi tidak ditemukan, katakan dengan jujur
-            4. Berikan jawaban yang informatif dan membantu
-            5. Format jawaban dengan rapi
 
             JAWABAN:
         PROMPT;
+    }
+
+     private function analyzeQueryType($query)
+    {
+        $query = strtolower($query);
+        $types = [];
+
+        if (preg_match('/(pengumuman|announcement|news)/', $query)) $types[] = 'PENGUMUMAN';
+        if (preg_match('/(prodi|program studi|jurusan|major)/', $query)) $types[] = 'PROGRAM_STUDI';
+        if (preg_match('/(himpunan|organisasi|hmti)/', $query)) $types[] = 'HIMPUNAN';
+        if (preg_match('/(lowongan|job|vacancy|asisten)/', $query)) $types[] = 'LOWONGAN';
+        if (preg_match('/(alumni|graduate|wisuda)/', $query)) $types[] = 'ALUMNI';
+        if (preg_match('/(dosen|lecturer|pengajar)/', $query)) $types[] = 'DOSEN';
+
+        if (empty($types)) {
+            return 'UMUM';
+        }
+
+        return implode(' + ', $types);
+    }
+
+    private function handleIdentityQuery($userQuery)
+    {
+        $identity = $this->chatbotIdentity;
+        $query = strtolower($userQuery);
+
+        if (
+            strpos($query, 'siapa kamu') !== false ||
+            strpos($query, 'perkenalkan diri') !== false ||
+            strpos($query, 'nama kamu') !== false ||
+            strpos($query, 'kamu siapa') !== false
+        ) {
+
+            $response = "Halo! Saya {$identity['name']}, {$identity['role']} dari ";
+            $response .= "{$identity['department']} di {$identity['university']}. ";
+            $response .= "Saya di sini untuk membantu Anda dengan berbagai informasi seputar kampus. ";
+            $response .= "Saya dapat memberikan informasi tentang pengumuman, program studi, ";
+            $response .= "himpunan mahasiswa, lowongan asisten dosen, berita alumni, dan informasi dosen. ";
+            $response .= "Ada yang bisa saya bantu hari ini? 😊";
+
+            return $response;
+        }
+
+        if (
+            strpos($query, 'kamu dibuat') !== false ||
+            strpos($query, 'pembuat kamu') !== false ||
+            strpos($query, 'developer') !== false
+        ) {
+
+            $response = "Saya {$identity['name']} dikembangkan oleh tim Program Studi Teknologi Informasi ";
+            $response .= "{$identity['university']} untuk membantu memberikan informasi kampus secara cepat dan akurat. ";
+            $response .= "Saya menggunakan teknologi AI yang terintegrasi dengan database kampus untuk memberikan ";
+            $response .= "respons yang tepat dan informatif.";
+
+            return $response;
+        }
+
+        if (
+            strpos($query, 'kemampuan') !== false ||
+            strpos($query, 'bisa apa') !== false ||
+            strpos($query, 'fitur') !== false
+        ) {
+
+            $response = "Sebagai {$identity['role']}, saya dapat membantu Anda dengan: \n\n";
+            $response .= "📋 **Informasi Pengumuman** - pengumuman terbaru, pengumuman penting\n";
+            $response .= "🎓 **Program Studi** - informasi tentang TI, kurikulum, akreditasi\n";
+            $response .= "👥 **Himpunan Mahasiswa** - profil HMTI, kegiatan, kepengurusan\n";
+            $response .= "💼 **Lowongan Asisten** - lowongan asisten dosen, persyaratan\n";
+            $response .= "📰 **Berita Alumni** - kesuksesan alumni, kegiatan alumni\n";
+            $response .= "👨‍🏫 **Informasi Dosen** - profil dosen, bidang keahlian\n\n";
+            $response .= "Ada yang spesifik yang ingin Anda tanyakan?";
+
+            return $response;
+        }
+
+        return null;
+    }
+    private function needsIntroduction($query)
+    {
+        $query = strtolower($query);
+
+        // Hanya perlu perkenalan untuk:
+        // 1. Pertanyaan tentang identitas
+        // 2. Greeting/sapaan
+        // 3. Pertanyaan umum tanpa konteks spesifik
+
+        $identityKeywords = ['siapa kamu', 'perkenalkan', 'kamu siapa', 'identitas'];
+        $greetingKeywords = ['halo', 'hai', 'hello', 'hi', 'selamat pagi', 'selamat siang', 'selamat sore', 'selamat malam'];
+        $generalKeywords = ['help', 'bantuan', 'bantu', 'bisa apa', 'fitur'];
+
+        foreach ($identityKeywords as $keyword) {
+            if (strpos($query, $keyword) !== false) return true;
+        }
+
+        foreach ($greetingKeywords as $keyword) {
+            if (strpos($query, $keyword) !== false) return true;
+        }
+
+        foreach ($generalKeywords as $keyword) {
+            if (strpos($query, $keyword) !== false) return true;
+        }
+
+        // Jika query spesifik tentang konten, tidak perlu perkenalan
+        $contentKeywords = ['pengumuman', 'dosen', 'prodi', 'himpunan', 'lowongan', 'alumni', 'jadwal', 'matkul'];
+        foreach ($contentKeywords as $keyword) {
+            if (strpos($query, $keyword) !== false) return false;
+        }
+
+        // Default: tidak perlu perkenalan
+        return false;
     }
 
     public function generateResponse($prompt)
@@ -224,12 +447,22 @@ class RagService
                                 ['text' => $prompt]
                             ]
                         ]
-                            ],
-                            'generationConfig' => [
-                        'temperature' => 0.7,
-                        'topK' => 40,
-                        'topP' => 0.95,
+                    ],
+                    'generationConfig' => [
+                        'temperature' => 0.3,
+                        'topK' => 20,
+                        'topP' => 0.8,
                         'maxOutputTokens' => 1024,
+                    ],
+                    'safetySettings' => [
+                        [
+                            'category' => 'HARM_CATEGORY_HARASSMENT',
+                            'threshold' => 'BLOCK_MEDIUM_AND_ABOVE'
+                        ],
+                        [
+                            'category' => 'HARM_CATEGORY_HATE_SPEECH',
+                            'threshold' => 'BLOCK_MEDIUM_AND_ABOVE'
+                        ]
                     ]
                 ]);
 
@@ -240,8 +473,26 @@ class RagService
             $data = $response->json();
 
             if (isset($data['candidates'][0]['content']['parts'][0]['text'])) {
-                return $data['candidates'][0]['content']['parts'][0]['text'];
+                $responseText = $data['candidates'][0]['content']['parts'][0]['text'];
+
+                // Post-processing: Pastikan response tidak mengandung penyangkalan identitas
+                $denialPatterns = [
+                    '/sebagai (ai|artificial intelligence)/i',
+                    '/sebagai model bahasa/i',
+                    '/saya tidak memiliki identitas/i',
+                    '/saya tidak memiliki nama/i'
+                ];
+
+                foreach ($denialPatterns as $pattern) {
+                    if (preg_match($pattern, $responseText)) {
+                        // Ganti dengan response identitas yang benar
+                        return $this->getDefaultIdentityResponse();
+                    }
+                }
+
+                return $responseText;
             } else {
+                Log::error('Gemini response format: ' . json_encode($data));
                 throw new \Exception('Format respons tidak sesuai');
             }
         } catch (\Exception $e) {
@@ -256,5 +507,14 @@ class RagService
     public function getChatbotInfo()
     {
         return $this->chatbotIdentity;
+    }
+
+    private function getDefaultIdentityResponse()
+    {
+        $identity = $this->chatbotIdentity;
+        return "Halo! Saya {$identity['name']}, {$identity['role']} dari " .
+            "{$identity['department']} di {$identity['university']}. " .
+            "Saya di sini untuk membantu Anda dengan informasi seputar kampus. " .
+            "Ada yang bisa saya bantu hari ini?";
     }
 }

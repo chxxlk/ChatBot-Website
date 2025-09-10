@@ -2,8 +2,9 @@
 
 namespace App\Services;
 
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 
 class EmbeddingService
 {
@@ -15,17 +16,17 @@ class EmbeddingService
     }
 
     /**
-     * Mendapatkan embedding dari teks dengan menggunakan API Gemini.
-     *
-     * @param string $text Teks yang akan di-embed
-     * @return array|null Nilai embedding dalam bentuk array. Jika gagal, maka akan
-     *                    mengembalikan nilai null.
+     * Generate embeddings untuk teks menggunakan Gemini API
      */
-    public function getEmbedding($text)
+    public function generateEmbedding($text)
     {
         try {
+            if (empty($text)) {
+                return null;
+            }
+
             $response = Http::timeout(30)
-                ->post('https://generativelanguage.googleapis.com/v1/models/embedding-001:embedContent?key=' . $this->apiKey, [
+                ->post("https://generativelanguage.googleapis.com/v1beta/models/embedding-001:embedContent?key={$this->apiKey}", [
                     'content' => [
                         'parts' => [
                             ['text' => $text]
@@ -33,89 +34,121 @@ class EmbeddingService
                     ]
                 ]);
 
-            if ($response->failed()) {
-                throw new \Exception('Gagal mendapatkan embedding');
+            if ($response->successful()) {
+                $data = $response->json();
+                return $data['embedding']['values'] ?? null;
             }
 
-            $data = $response->json();
-            return $data['embedding']['values'] ?? null;
+            Log::error('Embedding generation failed: ' . $response->body());
+            return null;
+
         } catch (\Exception $e) {
+            Log::error('Embedding service error: ' . $e->getMessage());
             return null;
         }
     }
 
     /**
-     * Menghitung nilai kemiripan cosinus (cosine similarity) antara dua vektor.
-     *
-     * @param array $vec1 Vektor pertama
-     * @param array $vec2 Vektor kedua
-     * @return float Nilai kemiripan cosinus
+     * Hitung cosine similarity antara dua vectors
      */
-    public function cosineSimilarity($vec1, $vec2)
+    public function cosineSimilarity($vectorA, $vectorB)
     {
-        if (count($vec1) !== count($vec2)) {
+        if (!$vectorA || !$vectorB || count($vectorA) !== count($vectorB)) {
             return 0;
         }
 
         $dotProduct = 0;
-        $norm1 = 0;
-        $norm2 = 0;
+        $normA = 0;
+        $normB = 0;
 
-        for ($i = 0; $i < count($vec1); $i++) {
-            $dotProduct += $vec1[$i] * $vec2[$i];
-            $norm1 += $vec1[$i] * $vec1[$i];
-            $norm2 += $vec2[$i] * $vec2[$i];
+        for ($i = 0; $i < count($vectorA); $i++) {
+            $dotProduct += $vectorA[$i] * $vectorB[$i];
+            $normA += $vectorA[$i] * $vectorA[$i];
+            $normB += $vectorB[$i] * $vectorB[$i];
         }
 
-        $norm1 = sqrt($norm1);
-        $norm2 = sqrt($norm2);
+        $normA = sqrt($normA);
+        $normB = sqrt($normB);
 
-        if ($norm1 == 0 || $norm2 == 0) {
+        if ($normA == 0 || $normB == 0) {
             return 0;
         }
 
-        return $dotProduct / ($norm1 * $norm2);
+        return $dotProduct / ($normA * $normB);
     }
 
     /**
-     * Mencari data yang mirip dengan query yang diberikan dengan menggunakan
-     * cosine similarity.
-     *
-     * @param string $query Query yang akan dicari
-     * @param string $table Nama tabel yang akan di-cari
-     * @param string $textColumn Nama kolom yang berisi teks yang akan di-cari
-     * @param int|null $limit Jumlah data yang akan di-ambil
-     * @return \Illuminate\Support\Collection|null Data yang mirip dengan query.
-     *                                            Jika tidak ada data yang mirip,
-     *                                            maka akan mengembalikan nilai null.
+     * Semantic search untuk mencari data yang relevan
      */
-    public function findSimilarData($query, $table, $textColumn, $limit = null)
+    public function semanticSearch($query, $table, $textColumns, $limit = 5, $threshold = 0.5)
     {
-        $queryEmbedding = $this->getEmbedding($query);
-        if (!$queryEmbedding) {
+        try {
+            // Generate embedding untuk query
+            $queryEmbedding = $this->generateEmbedding($query);
+            if (!$queryEmbedding) {
+                return DB::table($table)->limit($limit)->get();
+            }
+
+            // Ambil semua data dari tabel
+            $allData = DB::table($table)->get();
+            $scoredResults = [];
+
+            foreach ($allData as $item) {
+                // Gabungkan text dari semua columns yang ditentukan
+                $combinedText = '';
+                foreach ($textColumns as $column) {
+                    if (isset($item->$column)) {
+                        $combinedText .= $item->$column . ' ';
+                    }
+                }
+
+                if (!empty(trim($combinedText))) {
+                    // Generate embedding untuk item
+                    $itemEmbedding = $this->generateEmbedding($combinedText);
+                    
+                    if ($itemEmbedding) {
+                        $similarity = $this->cosineSimilarity($queryEmbedding, $itemEmbedding);
+                        
+                        if ($similarity >= $threshold) {
+                            $scoredResults[] = [
+                                'item' => $item,
+                                'score' => $similarity
+                            ];
+                        }
+                    }
+                }
+            }
+
+            // Urutkan berdasarkan similarity score
+            usort($scoredResults, function ($a, $b) {
+                return $b['score'] <=> $a['score'];
+            });
+
+            // Ambil top results
+            $topResults = array_slice($scoredResults, 0, $limit);
+            
+            return array_map(function ($result) {
+                return $result['item'];
+            }, $topResults);
+
+        } catch (\Exception $e) {
+            Log::error('Semantic search error: ' . $e->getMessage());
             return DB::table($table)->limit($limit)->get();
         }
+    }
 
-        $allData = DB::table($table)->get();
-        $scoredData = [];
+    /**
+     * Batch semantic search untuk multiple tables
+     */
+    public function multiTableSemanticSearch($query, $tablesConfig, $limitPerTable = 3)
+    {
+        $results = [];
 
-        foreach ($allData as $item) {
-            $itemEmbedding = $this->getEmbedding($item->$textColumn);
-            if ($itemEmbedding) {
-                $similarity = $this->cosineSimilarity($queryEmbedding, $itemEmbedding);
-                $scoredData[] = [
-                    'data' => $item,
-                    'score' => $similarity
-                ];
-            }
+        foreach ($tablesConfig as $tableName => $config) {
+            $textColumns = $config['columns'];
+            $results[$tableName] = $this->semanticSearch($query, $tableName, $textColumns, $limitPerTable);
         }
 
-        // Urutkan berdasarkan similarity score
-        usort($scoredData, function ($a, $b) {
-            return $b['score'] <=> $a['score'];
-        });
-
-        // Ambil data terbaik
-        return array_slice(array_column($scoredData, 'data'), 0, $limit);
+        return $results;
     }
 }
