@@ -8,11 +8,13 @@ class AdvancedRagService
 {
     private $embeddingService;
     private $basicRagService;
+    private $chatbotIdentity;
 
     public function __construct()
     {
         $this->embeddingService = new EmbeddingService();
         $this->basicRagService = new RagService();
+        $this->chatbotIdentity = $this->basicRagService->getChatbotInfo();
     }
 
     /**
@@ -45,7 +47,14 @@ class AdvancedRagService
             'prodi',
             'himpunan',
             'jadwal',
-            'info'
+            'info',
+            'berita',
+            'berita alumni',
+            'berita prodi',
+            'berita himpunan',
+            'identitas',
+            'perkenalan',
+            'perkenalan chatbot'
         ];
 
         $query = strtolower($query);
@@ -87,6 +96,16 @@ PROMPT;
         $context .= $this->getSemanticData($query, 'profil_prodi', 'visi', 'misi', 'akreditasi', 'ketua_prodi');
         $context .= $this->getSemanticData($query, 'profil_himpunan_mahasiswa', 'nama_himpunan', 'visi', 'misi', 'ketua_umum', 'priode');
         $context .= $this->getSemanticData($query, 'lowongan_asisten_dosen', 'mata_kuliah', 'kualifikasi', 'deadline', 'kontak');
+
+        $chatbotInfo = $this->basicRagService->getChatbotInfo();
+
+        $context .= "INFORMASI CHATBOT:\n";
+        $context .= "Nama: {$chatbotInfo['name']}\n";
+        $context .= "Peran: {$chatbotInfo['role']}\n";
+        $context .= "Program Studi: {$chatbotInfo['department']}\n";
+        $context .= "Universitas: {$chatbotInfo['university']}\n\n";
+
+
         // $context .= $this->getSemanticData($query, 'dosen', 'nama', 'bidang_keahlian');
         // $context .= $this->getSemanticData($query, 'berita_alumni', 'judul', 'isi');
 

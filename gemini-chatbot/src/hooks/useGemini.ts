@@ -1,5 +1,4 @@
 import { useState, useCallback } from 'react';
-import { generateResponse } from '../utils/geminiClient';
 import { sendChatMessage } from '../utils/api';
 import type { Message, ChatState } from '../types';
 
@@ -11,6 +10,9 @@ export const useGemini = () => {
   });
 
   const sendMessage = useCallback(async (message: string) => {
+    // Skip jika message kosong
+    if (!message.trim()) return;
+
     const userMessage: Message = {
       id: Date.now().toString(),
       text: message,
@@ -25,39 +27,15 @@ export const useGemini = () => {
       messages: [...prev.messages, userMessage],
     }));
 
-    // try {
-    //   const response = await generateResponse(message);
-
-    //   const aiMessage: Message = {
-    //     id: (Date.now() + 1).toString(),
-    //     text: response,
-    //     sender: 'ai',
-    //     timestamp: new Date(),
-    //   };
-
-    //   setState(prev => ({
-    //     ...prev,
-    //     isLoading: false,
-    //     messages: [...prev.messages, aiMessage],
-    //   }));
-    // } catch (error) {
-    //   setState(prev => ({
-    //     ...prev,
-    //     isLoading: false,
-    //     error: error instanceof Error ? error.message : 'An error occurred',
-    //   }));
-    // }
-
     try {
-      // Use the Laravel backend API
       const response = await sendChatMessage(message);
-
+      
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
         text: response.response,
         sender: 'ai',
         timestamp: new Date(),
-        // source: response.source // Add source information
+        source: response.source
       };
 
       setState(prev => ({
@@ -69,7 +47,7 @@ export const useGemini = () => {
       setState(prev => ({
         ...prev,
         isLoading: false,
-        error: error.message || "Failed to send message. Please try again.",
+        error: error.message || "Gagal mengirim pesan. Silakan coba lagi.",
       }));
     }
   }, []);
@@ -82,11 +60,19 @@ export const useGemini = () => {
     });
   }, []);
 
+  const clearError = useCallback(() => {
+    setState(prev => ({
+      ...prev,
+      error: null,
+    }));
+  }, []);
+
   return {
     messages: state.messages,
     isLoading: state.isLoading,
     error: state.error,
     sendMessage,
     clearChat,
+    clearError,
   };
 };

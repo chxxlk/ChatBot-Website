@@ -3,6 +3,7 @@ import React, { useState, type KeyboardEvent } from 'react';
 interface InputAreaProps {
   onSendMessage: (message: string) => void;
   isLoading: boolean;
+  placeholder: string;
 }
 
 export const InputArea: React.FC<InputAreaProps> = ({ onSendMessage, isLoading }) => {

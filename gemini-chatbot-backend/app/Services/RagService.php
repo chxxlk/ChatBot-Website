@@ -9,11 +9,27 @@ use Illuminate\Support\Facades\Log;
 class RagService
 {
     private $apiKey;
+    private $chatbotIdentity;
 
     public function __construct()
     {
         $this->apiKey = env('GEMINI_API_KEY');
+        $this->chatbotIdentity = $this->getChatbotIdentity();
     }
+
+    private function getChatbotIdentity()
+    {
+        return [
+            'name' => 'Fernando',
+            'role' => 'Asisten Virtual',
+            'department' => 'Program Studi Teknologi Informasi',
+            'university' => 'Universitas Kristen Satya Wacana',
+            'tone' => 'ramah, sopan, dan informatif',
+            'language' => 'Bahasa Indonesia yang baik dan benar',
+            'limitations' => 'Hanya dapat menjawab berdasarkan informasi dari database kampus'
+        ];
+    }
+
 
     public function queryWithContext($userQuery)
     {
@@ -31,6 +47,13 @@ class RagService
     {
         $query = strtolower($query);
         $context = "";
+
+        // Identitas Bot
+        $context .= "INFORMASI CHATBOT:\n";
+        $context .= "Nama: {$this->chatbotIdentity['name']}\n";
+        $context .= "Peran: {$this->chatbotIdentity['role']}\n";
+        $context .= "Program Studi: {$this->chatbotIdentity['department']}\n";
+        $context .= "Universitas: {$this->chatbotIdentity['university']}\n\n";
 
         // Cari data relevan dari semua tabel
         $context .= $this->getPengumumanData($query);
@@ -141,25 +164,53 @@ class RagService
         return "";
     }
 
+    /**
+     * Membuat prompt untuk inputan AI.
+     *
+     * Prompt ini dibuat berdasarkan query user dan informasi database kampus.
+     * Prompt ini akan digunakan sebagai inputan untuk AI.
+     *
+     * @param string $userQuery query yang diinputkan oleh user
+     * @param string $context informasi database kampus yang relevan
+     * @return string prompt yang dibuat
+     */
     private function buildPrompt($userQuery, $context)
     {
+        $identity = $this->chatbotIdentity;
         return <<<PROMPT
-Anda adalah asisten virtual untuk kampus. Berikan jawaban berdasarkan informasi dari database kampus berikut:
+            # IDENTITAS CHATBOT
+            Anda adalah {$identity['name']}, {$identity['role']} dari {$identity['department']} di {$identity['university']}.
 
-INFORMASI DATABASE KAMPUS:
-{$context}
+            # INSTRUKSI UMUM
+            1. Perkenalkan diri singkat sebagai {$identity['name']} di awal percakapan jika perlu
+            2. Gunakan nada yang {$identity['tone']}
+            3. Berbicaralah dalam {$identity['language']}
+            4. {$identity['limitations']}
+            5. Jika informasi tidak ditemukan, jujur katakan bahwa Anda tidak tahu
+            6. Berikan jawaban yang informatif dan membantu
 
-PERTANYAAN USER: {$userQuery}
+            # INFORMASI DATABASE KAMPUS:
+            {$context}
 
-INSTRUKSI:
-1. Jawab dalam Bahasa Indonesia yang baik dan sopan
-2. Gunakan hanya informasi dari database di atas
-3. Jika informasi tidak ditemukan, katakan dengan jujur
-4. Berikan jawaban yang informatif dan membantu
-5. Format jawaban dengan rapi
+            # PERTANYAAN USER:
+            {$userQuery}
 
-JAWABAN:
-PROMPT;
+            # FORMAT JAWABAN:
+            - Awali dengan salam jika percakapan baru
+            - Gunakan paragraf yang terstruktur rapi
+            - Sertakan informasi yang relevan dari database
+            - Akhiri dengan penawaran bantuan lebih lanjut
+
+
+            INSTRUKSI:
+            1. Jawab dalam Bahasa Indonesia yang baik dan sopan
+            2. Gunakan hanya informasi dari database di atas
+            3. Jika informasi tidak ditemukan, katakan dengan jujur
+            4. Berikan jawaban yang informatif dan membantu
+            5. Format jawaban dengan rapi
+
+            JAWABAN:
+        PROMPT;
     }
 
     public function generateResponse($prompt)
@@ -173,6 +224,12 @@ PROMPT;
                                 ['text' => $prompt]
                             ]
                         ]
+                            ],
+                            'generationConfig' => [
+                        'temperature' => 0.7,
+                        'topK' => 40,
+                        'topP' => 0.95,
+                        'maxOutputTokens' => 1024,
                     ]
                 ]);
 
@@ -191,5 +248,13 @@ PROMPT;
             Log::error('Gemini API error: ' . $e->getMessage());
             return "Maaf, saya sedang mengalami gangguan teknis. Silakan coba lagi nanti.";
         }
+    }
+
+    /**
+     * Method untuk mendapatkan informasi identitas chatbot
+     */
+    public function getChatbotInfo()
+    {
+        return $this->chatbotIdentity;
     }
 }
