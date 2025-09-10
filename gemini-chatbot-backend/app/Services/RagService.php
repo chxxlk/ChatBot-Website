@@ -34,11 +34,11 @@ class RagService
 
         // Cari data relevan dari semua tabel
         $context .= $this->getPengumumanData($query);
+        $context .= $this->getProdiData($query);
+        $context .= $this->getHimpunanData($query);
+        $context .= $this->getLowonganAsistenData($query);
+        $context .= $this->getBeritaAlumniData($query);
         // $context .= $this->getDosenData($query);
-        // $context .= $this->getBeritaAlumniData($query);
-        // $context .= $this->getLowonganData($query);
-        // $context .= $this->getProdiData($query);
-        // $context .= $this->getHimpunanData($query);
 
         return $context;
     }
@@ -55,6 +55,85 @@ class RagService
                     $result .= "Judul: {$p->judul}\n";
                     $result .= "Tanggal: {$p->tanggal}\n";
                     $result .= "Isi: " . substr($p->isi, 0, 200) . "...\n\n";
+                }
+                return $result;
+            }
+        }
+        return "";
+    }
+
+    private function getProdiData($query)
+    {
+        if (strpos($query, 'prodi') !== false) {
+            $prodi = DB::table('profil_prodi')
+                ->get();
+
+            if ($prodi->isNotEmpty()) {
+                $result = "INFORMASI PROGRAM STUDI:\n";
+                foreach ($prodi as $p) {
+                    $result .= "Visi: " . substr($p->visi, 0, 200) . "\n";
+                    $result .= "Misi: " . substr($p->misi, 0, 200) . "\n";
+                    $result .= "Ketua Prodi: {$p->ketua_prodi}\n";
+                }
+                return $result;
+            }
+        }
+        return "";
+    }
+
+    private function getHimpunanData($query)
+    {
+        if (strpos($query, 'himpunan mahasiswa') !== false) {
+            $himpunan = DB::table('profil_himpunan_mahasiswa')
+                ->get();
+
+            if ($himpunan->isNotEmpty()) {
+                $result = "INFORMASI HIMPUNAN MAHASISWA:\n";
+                foreach ($himpunan as $h) {
+                    $result .= "Visi: " . substr($h->visi, 0, 200) . "\n";
+                    $result .= "Misi: " . substr($h->misi, 0, 200) . "\n";
+                    $result .= "Ketua Umum: {$h->ketua_umum}\n";
+                    $result .= "Periode: {$h->periode}\n";
+                }
+                return $result;
+            }
+        }
+        return "";
+    }
+
+    private function getLowonganAsistenData($query)
+    {
+        if (strpos($query, 'lowongan') !== false || strpos($query, 'asisten') !== false || strpos($query, 'asisten dosen') !== false) {
+            $lowongan = DB::table('lowongan_asisten_dosen')
+                ->get();
+
+            if ($lowongan->isNotEmpty()) {
+                $result = "INFORMASI HIMPUNAN MAHASISWA:\n";
+                foreach ($lowongan as $l) {
+                    $result .= "Matakuliah: {$l->mata_kuliah}\n";
+                    $result .= "Kualifikasi : " . substr($l->kualifikasi, 0, 200) . "\n";
+                    $result .= "Deadline : {$l->deadline}\n";
+                    $result .= "Kontak : {$l->kontak}\n";
+                }
+                return $result;
+            }
+        }
+        return "";
+    }
+
+    private function getBeritaAlumniData($query)
+    {
+        if (strpos($query, 'alumni') !== false || strpos($query, 'berita') !== false || strpos($query, 'berita alumni') !== false) {
+            $alumni = DB::table('berita_alumni')
+                ->get();
+
+            if ($alumni->isNotEmpty()) {
+                $result = "INFORMASI ALUMNI:\n";
+                foreach ($alumni as $a) {
+                    $result .= "Nama Alumni: {$a->nama_alumni}\n";
+                    $result .= "Judul Berita : {$a->judul_berita}\n";
+                    $result .= "Isi : " . substr($a->isi, 0, 200) . "\n";
+                    $result .= "Tanggal : {$a->tanggal}\n";
                 }
                 return $result;
             }

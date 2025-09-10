@@ -40,7 +40,6 @@ class AdvancedRagService
     {
         $simpleKeywords = [
             'pengumuman',
-            'dosen',
             'alumni',
             'lowongan',
             'prodi',
@@ -85,11 +84,11 @@ PROMPT;
 
         // Dapatkan data relevan dari setiap tabel
         $context .= $this->getSemanticData($query, 'pengumuman', 'judul', 'isi');
-        $context .= $this->getSemanticData($query, 'dosen', 'nama', 'bidang_keahlian');
-        $context .= $this->getSemanticData($query, 'berita_alumni', 'judul', 'isi');
-        $context .= $this->getSemanticData($query, 'lowongan_asisten_dosen', 'mata_kuliah', 'deskripsi');
-        $context .= $this->getSemanticData($query, 'profil_program_studi', 'nama_program_studi', 'deskripsi');
-        $context .= $this->getSemanticData($query, 'profil_himpunan_mahasiswa', 'nama_himpunan', 'deskripsi');
+        $context .= $this->getSemanticData($query, 'profil_prodi', 'visi', 'misi', 'akreditasi', 'ketua_prodi');
+        $context .= $this->getSemanticData($query, 'profil_himpunan_mahasiswa', 'nama_himpunan', 'visi', 'misi', 'ketua_umum', 'priode');
+        $context .= $this->getSemanticData($query, 'lowongan_asisten_dosen', 'mata_kuliah', 'kualifikasi', 'deadline', 'kontak');
+        // $context .= $this->getSemanticData($query, 'dosen', 'nama', 'bidang_keahlian');
+        // $context .= $this->getSemanticData($query, 'berita_alumni', 'judul', 'isi');
 
         return $context;
     }
