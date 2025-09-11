@@ -27,7 +27,7 @@ npm run dev
 - Buat PR dari branch ke repository utama
 ## 📄 Lainnya
 - Lihat [README.md](./README.md)
-- Lihat [LICENSE](./license)
+- Lihat [LICENSE](./LICENSE)
 
 ## 🙏 Terima Kasih
 Terima kasih atas setiap kontribusi. Kamu membuat project ini lebih baik!
