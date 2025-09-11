@@ -1,4 +1,11 @@
 # ChatBot-Website 🚀
+
+[![forthebadge](https://forthebadge.com/images/badges/made-with-typescript.svg)](https://www.typescriptlang.org/)
+[![forthebadge](https://forthebadge.com/images/badges/made-with-react.svg)](https://react.dev/)
+[![forthebadge](https://forthebadge.com/images/badges/made-with-php.svg)](https://www.php.net/)
+
+[![forthebadge](https://forthebadge.com/images/badges/approved-by-my-mom.svg)](http://forthebadge.com)
+
 Chatbot Powered by Gemini AI, Custom Chatbots for Specific Websites.
 # 📌 Feature
 * Custom Chat
@@ -34,6 +41,10 @@ cp .env.example .env
 cd gemini-chatbot
 npm install
 ```
+### ⚠️ Untuk depedencies bisa dilihat di package.json
+* Frontend : [package.json](./gemini-chatbot/package-lock.json)
+* Backend : [package.json](./gemini-chatbot-backend/package.json)
+
 # ▶️ Usage
 ```
 # Jalankan backend
