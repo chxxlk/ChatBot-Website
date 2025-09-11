@@ -4,6 +4,12 @@ Chatbot Powered by Gemini AI, Custom Chatbots for Specific Websites.
 * Custom Chat
 * Multi-Platform
 * Smart Search
+## Benefit
+### Development
+* 🎯 __Modular component__ structure
+* 🎯 __Reusable components__ untuk future features
+* 🎯 __Maintainable code__ dengan clear separation
+* 🎯 __Scalable architecture__ untuk enhancements
 # Tech Stack
 * *Backend  : Laravel 12, PHP 8.3.16*
 * *Frontend : React + Vite + Typescript*
