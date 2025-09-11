@@ -1,27 +1,37 @@
-// import React from 'react';
-import { ChatInterface } from './components/ChatInterface';
-// import { ConnectionTester } from './components/ConnectionTester';
-// import { DatabaseInfo } from './components/DatabaseInfo';
+import React, { useState } from 'react';
+import { ChatModal } from './components/ChatModal';
+import { FloatingChatButton } from './components/FloatingChatButton';
 import { useGemini } from './hooks/useGemini';
 import './App.css';
 
 function App() {
   const { messages, isLoading, error, sendMessage, clearChat, clearError } = useGemini();
+  const [isChatOpen, setIsChatOpen] = useState(false);
+
+  const handleOpenChat = () => {
+    setIsChatOpen(true);
+  };
+
+  const handleCloseChat = () => {
+    setIsChatOpen(false);
+  };
 
   return (
     <div className="App">
-      <div className="container mx-auto p-4 max-w-4xl">
-        {/* <ConnectionTester /> */}
-        {/* <DatabaseInfo /> */}
-        <ChatInterface
-          messages={messages}
-          isLoading={isLoading}
-          error={error}
-          onSendMessage={sendMessage}
-          onClearChat={clearChat}
-          onClearError={clearError}
-        />
-      </div>
+      {/* Floating Chat Button */}
+      <FloatingChatButton onOpen={handleOpenChat} isOpen={isChatOpen} />
+
+      {/* Chat Modal */}
+      <ChatModal
+        isOpen={isChatOpen}
+        onClose={handleCloseChat}
+        messages={messages}
+        isLoading={isLoading}
+        error={error}
+        onSendMessage={sendMessage}
+        onClearChat={clearChat}
+        onClearError={clearError}
+      />
     </div>
   );
 }
