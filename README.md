@@ -43,7 +43,7 @@ php artisan serve
 npm run dev
 ```
 # 📷 Screenshot
-<p align="center"> <img src="img/screenshot_2.png" alt="screenshot" width="80%"/> </p> </br>
+<p align="center"> <img src="img/screenshot_2.png" alt="screenshot" width="80%"/> </p>
 <p align="center"> <img src="img/screenshot_3.png" alt="screenshot" width="80%"/> </p>
 
 # 🌟 Support
