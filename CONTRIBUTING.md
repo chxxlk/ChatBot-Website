@@ -17,8 +17,12 @@ Kami senang kamu tertarik berkontribusi! 🎉
 ## 🔧 Setup Lokal
 ```bash
 git clone https://github.com/chxxlk/ChatBot-Website.git
+cd gemini-chatbot
 npm install
 npm run dev
+
+cd gemini-chatbot-backend
+php artisan serve
 ```
 ## ✅ Proses Pull Request
 - Fork dan clone repo
