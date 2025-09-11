@@ -19,3 +19,15 @@ Kami senang kamu tertarik berkontribusi! 🎉
 git clone https://github.com/chxxlk/ChatBot-Website.git
 npm install
 npm run dev
+```
+## ✅ Proses Pull Request
+- Fork dan clone repo
+- Buat branch: git checkout -b feature/...
+- Commit dan push
+- Buat PR dari branch ke repository utama
+## 📄 Lainnya
+- Lihat [README.md](./README.md)
+- Lihat [LICENSE](./license)
+
+## 🙏 Terima Kasih
+Terima kasih atas setiap kontribusi. Kamu membuat project ini lebih baik!
