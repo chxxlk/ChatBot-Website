@@ -4,13 +4,16 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 class ChatbotController extends Controller
 {
     public function chat(Request $request)
     {
+        if ($request->isMethod('OPTIONS')) {
+            return $this->addCorsHeaders(response()->json([]));
+        }
+
         $request->validate([
             'message' => 'required|string',
             'session_id' => 'nullable|string'
@@ -20,98 +23,70 @@ class ChatbotController extends Controller
         $sessionId = $request->input('session_id', 'default');
 
         try {
-            // 1. Cari di database kampus terlebih dahulu
-            $dbResponse = $this->searchInDatabase($message);
+            // GUNAKAN AdvancedRagService BUKAN RagService
+            // $advancedRagService = new \App\Services\AdvancedRagService();
+            $RageService = new \App\Services\RagService();
 
-            if ($dbResponse) {
-                // Simpan ke chat history
-                $this->saveToHistory($message, $dbResponse, $sessionId, 'database');
-                return response()->json([
-                    'response' => $dbResponse,
-                    'source' => 'database'
-                ]);
-            }
-
-            // 2. Jika tidak ditemukan di database, gunakan Gemini AI
-            $geminiResponse = $this->getGeminiResponse($message);
+            // $response = $advancedRagService->smartQuery($message);
+            $response = $RageService->queryWithContext($message);
 
             // Simpan ke chat history
-            $this->saveToHistory($message, $geminiResponse, $sessionId, 'gemini');
+            $this->saveToHistory($message, $response, $sessionId, 'advanced_rag');
 
-            return response()->json([
-                'response' => $geminiResponse,
-                'source' => 'gemini'
-            ]);
+            return $this->addCorsHeaders(response()->json([
+                'response' => $response,
+                'source' => 'advanced_rag'
+            ]));
         } catch (\Exception $e) {
             Log::error('Chat error: ' . $e->getMessage());
+
+            // Fallback ke RagService biasa jika AdvancedRagService error
+            try {
+                $ragService = new \App\Services\RagService();
+                $fallbackResponse = $ragService->queryWithContext($message);
+
+                $this->saveToHistory($message, $fallbackResponse, $sessionId, 'rag_fallback');
+
+                return $this->addCorsHeaders(response()->json([
+                    'response' => $fallbackResponse,
+                    'source' => 'rag_fallback'
+                ]));
+            } catch (\Exception $fallbackError) {
+                return $this->addCorsHeaders(response()->json([
+                    'error' => 'Terjadi kesalahan internal. Silakan coba lagi nanti.'
+                ], 500));
+            }
+        }
+    }
+
+    public function semanticSearchTest(Request $request)
+    {
+        try {
+            $query = $request->input('query', '');
+            $ragService = new \App\Services\RagService();
+
+            // Test semantic search
+            $context = $ragService->getSemanticRelevantData($query);
+
             return response()->json([
-                'error' => 'Terjadi kesalahan: ' . $e->getMessage()
+                'query' => $query,
+                'context' => $context,
+                'success' => true
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'Semantic search test failed: ' . $e->getMessage()
             ], 500);
         }
     }
 
-    private function searchInDatabase($message)
+    private function addCorsHeaders($response)
     {
-        $message = strtolower($message);
-
-        // Cari di tabel pengumuman
-        if (
-            strpos($message, 'pengumuman') !== false ||
-            strpos($message, 'pengumuman terbaru') !== false
-        ) {
-
-            $pengumuman = DB::table('pengumuman')
-                ->orderBy('tanggal', 'desc')
-                ->first();
-
-            if ($pengumuman) {
-                return "PENGUMUMAN TERBARU\n\n" .
-                    "Judul: " . $pengumuman->judul .
-                    "\nTanggal: " . $pengumuman->tanggal .
-                    "\n\nIsi: " . substr($pengumuman->isi, 0, 200) .
-                    (strlen($pengumuman->isi) > 200 ? "..." : "");
-            } else {
-                return "Maaf, tidak ada pengumuman terbaru yang ditemukan.";
-            }
-        }
-
-        return null;
-    }
-
-    private function getGeminiResponse($message)
-    {
-        $apiKey = env('GEMINI_API_KEY');
-
-        if (!$apiKey) {
-            throw new \Exception('API key Gemini tidak ditemukan');
-        }
-
-        try {
-            $response = Http::timeout(30)
-                ->post('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' . $apiKey, [
-                    'contents' => [
-                        [
-                            'parts' => [
-                                ['text' => "Jawab pertanyaan berikut dalam Bahasa Indonesia: " . $message]
-                            ]
-                        ]
-                    ]
-                ]);
-
-            if ($response->failed()) {
-                throw new \Exception('Gagal mendapatkan respons dari Gemini: ' . $response->body());
-            }
-
-            $data = $response->json();
-
-            if (isset($data['candidates'][0]['content']['parts'][0]['text'])) {
-                return $data['candidates'][0]['content']['parts'][0]['text'];
-            } else {
-                throw new \Exception('Format respons Gemini tidak sesuai');
-            }
-        } catch (\Exception $e) {
-            throw new \Exception('Gagal mendapatkan respons dari Gemini: ' . $e->getMessage());
-        }
+        return $response
+            ->header('Access-Control-Allow-Origin', 'http://localhost:5173')
+            ->header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
+            ->header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With')
+            ->header('Access-Control-Allow-Credentials', 'true');
     }
 
     private function saveToHistory($userMessage, $botResponse, $sessionId, $source)

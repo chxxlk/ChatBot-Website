@@ -3,6 +3,8 @@ export interface Message {
   text: string;
   sender: 'user' | 'ai';
   timestamp: Date;
+  source?: 'database' | 'gemini' | 'rag' | 'system';
+  isWelcome?: boolean;
 }
 
 export interface ChatState {

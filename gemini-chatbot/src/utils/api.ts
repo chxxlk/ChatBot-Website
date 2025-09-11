@@ -110,3 +110,23 @@ export const testDatabase = async () => {
     throw new Error(`Test database gagal: ${error.message}`);
   }
 };
+
+export const getChatbotInfo = async () => {
+  try {
+    const response = await apiClient.get('/chatbot/info');
+    return response.data;
+  } catch (error: any) {
+    console.error('Failed to get chatbot info:', error);
+    throw new Error(`Gagal mengambil informasi chatbot: ${error.message}`);
+  }
+};
+
+export const getWelcomeMessage = async () => {
+  try {
+    const response = await apiClient.get('/chatbot/welcome');
+    return response.data;
+  } catch (error: any) {
+    console.error('Failed to get welcome message:', error);
+    throw new Error(`Gagal mengambil pesan welcome: ${error.message}`);
+  }
+};
