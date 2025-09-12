@@ -20,7 +20,7 @@ Chatbot Powered by Gemini AI, Custom Chatbots for Specific Websites.
 # Tech Stack
 * *Backend  : Laravel 12, PHP 8.3.16*
 * *Frontend : React + Vite + Typescript*
-* *Database : MySQL*
+* *Database : MySQL (Local)*
 * *AI        : Gemini AI*
 # 📂 Project Structure
 >├── backend/        # Laravel project </br>
@@ -54,8 +54,7 @@ php artisan serve
 npm run dev
 ```
 # 📷 Screenshot
-<p align="center"> <img src="img/screenshot_2.png" alt="screenshot" width="80%"/> </p>
-<p align="center"> <img src="img/screenshot_3.png" alt="screenshot" width="80%"/> </p>
+<p align="center"> <img src="img/screenshot_4.png" alt="screenshot" width="80%"/> </p>
 
 # 🌟 Support
 Kalau Repo ini bermanfaat, jangan lupa kasih ⭐ di GitHub ya!

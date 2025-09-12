@@ -13,5 +13,7 @@ Route::get('/test-db', [ChatbotController::class, 'testDatabase']);
 Route::post('/chat', [ChatbotController::class, 'chat']);
 Route::get('/history', [ChatbotController::class, 'getHistory']);
 
-Route::get('/chatbot/info', [ChatbotInfoController::class, 'getInfo']);
-Route::get('/chatbot/welcome', [ChatbotInfoController::class, 'getWelcomeMessage']);
+
+// cek info dan welcome message
+// Route::get('/chatbot/info', [ChatbotInfoController::class, 'getInfo']);
+// Route::get('/chatbot/welcome', [ChatbotInfoController::class, 'getWelcomeMessage']);

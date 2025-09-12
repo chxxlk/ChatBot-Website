@@ -3,22 +3,26 @@
 namespace App\Http\Controllers;
 use App\Services\RagService;
 use Illuminate\Http\Request;
-// use App\Services\AdvancedRagService;
 
 class ChatbotInfoController extends Controller
 {
     protected $ragService;
 
+    /**
+     * Construct a new ChatbotInfoController instance.
+     *
+     * @param RagService $ragService
+     */
     public function __construct(RagService $ragService) // UPDATE TYPE HINT
     {
         $this->ragService = $ragService;
     }
 
-    // public function __construct(RagService $ragService)
-    // {
-    //     $this->ragService = $ragService;
-    // }
-
+    /**
+     * Get the chatbot info.
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function getInfo()
     {
         try {
@@ -37,6 +41,11 @@ class ChatbotInfoController extends Controller
         }
     }
 
+    /**
+     * Get the welcome message.
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function getWelcomeMessage()
     {
         $info = $this->ragService->getChatbotInfo();

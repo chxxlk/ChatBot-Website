@@ -34,24 +34,24 @@ export const ChatModal: React.FC<ChatModalProps> = ({
             />
 
             {/* Modal */}
-            <div className="relative bg-white rounded-lg shadow-2xl w-full max-w-md h-[600px] flex flex-col transform transition-all duration-300 ease-in-out">
+            <div className="relative bg-white rounded-lg shadow-2xl w-full max-w-lg h-[800px] flex flex-col transform transition-all duration-300 ease-in-out">
                 {/* Header */}
-                <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-t-lg">
+                <div className="flex items-center justify-between p-4 border-b bg-gradient-to-b from-blue-500 to-white text-white rounded-t-lg">
                     <div className="flex items-center space-x-3">
                         <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
                             <span className="text-lg">🤖</span>
                         </div>
-                        <div>
-                            <h3 className="font-semibold">Fernando Assistant</h3>
-                            <p className="text-xs text-white/80">Online • Siap membantu</p>
+                        <div className='text-black text-left'>
+                            <h3 className="font-semibold">Chris Assistant</h3>
+                            <p className="text-xs">Online • Siap membantu</p>
                         </div>
                     </div>
 
                     <button
                         onClick={onClose}
-                        className="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 transition-colors flex items-center justify-center"
+                        className="w-8 h-8 rounded-full bg-white/50 hover:bg-red-500/80 transition-colors flex items-center justify-center"
                     >
-                        <span className="text-white">×</span>
+                        <span>❌</span>
                     </button>
                 </div>
 
@@ -64,7 +64,7 @@ export const ChatModal: React.FC<ChatModalProps> = ({
                         onSendMessage={onSendMessage}
                         onClearChat={onClearChat}
                         onClearError={onClearError}
-                        isModal={true} // Tambahkan prop ini
+                        isModal={true}
                     />
                 </div>
             </div>

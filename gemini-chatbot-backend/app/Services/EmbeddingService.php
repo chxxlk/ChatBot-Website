@@ -10,6 +10,11 @@ class EmbeddingService
 {
     private $apiKey;
 
+    /**
+     * Create a new instance of EmbeddingService
+     *
+     * @return void
+     */
     public function __construct()
     {
         $this->apiKey = env('GEMINI_API_KEY');
