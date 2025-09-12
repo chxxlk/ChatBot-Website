@@ -54,6 +54,7 @@ php artisan serve
 npm run dev
 ```
 # 📷 Screenshot
+Tampilan
 <p align="center"> <img src="img/screenshot_4.png" alt="screenshot" width="80%"/> </p>
 
 # 🌟 Support
