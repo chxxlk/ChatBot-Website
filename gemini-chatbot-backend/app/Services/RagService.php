@@ -19,10 +19,25 @@ class RagService
         $this->embeddingService = new EmbeddingService();
     }
 
+    /**
+     * Mendapatkan informasi identitas chatbot yang digunakan untuk berinteraksi dengan pengguna.
+     *
+     * Informasi yang dikembalikan berupa array yang berisi:
+     *
+     * - `name`: nama chatbot
+     * - `role`: peran chatbot
+     * - `department`: unit/program studi yang diwakili chatbot
+     * - `university`: nama universitas yang diwakili chatbot
+     * - `tone`: nada/tone yang digunakan chatbot dalam berinteraksi
+     * - `language`: bahasa yang digunakan chatbot dalam berinteraksi
+     * - `limitations`: keterbatasan jawaban chatbot
+     *
+     * @return array
+     */
     private function getChatbotIdentity()
     {
         return [
-            'name' => 'Fernando',
+            'name' => 'Chris',
             'role' => 'Asisten Virtual',
             'department' => 'Program Studi Teknologi Informasi',
             'university' => 'Universitas Kristen Satya Wacana',
@@ -33,6 +48,18 @@ class RagService
     }
 
 
+    /**
+     * Query the chatbot using the given user query.
+     *
+     * Steps:
+     * 0. Cek dulu jika ini pertanyaan tentang identitas
+     * 1. Retrieve: Ambil data relevan dari database
+     * 2. Augment: Gabungkan dengan prompt yang tepat
+     * 3. Generate: Kirim ke Gemini
+     *
+     * @param string $userQuery The user's query
+     * @return string The response from the chatbot
+     */
     public function queryWithContext($userQuery)
     {
         // 0. Cek dulu jika ini pertanyaan tentang identitas
@@ -51,6 +78,16 @@ class RagService
         return $this->generateResponse($prompt);
     }
 
+    /**
+     * Retrieve relevant data from database.
+     *
+     * This function retrieves relevant data from database to be used as context
+     * for generating a response. The context includes information about the chatbot
+     * and the relevant data found using semantic search.
+     *
+     * @param string $query The user's query
+     * @return string The retrieved relevant data
+     */
     private function retrieveRelevantData($query)
     {
         $query = strtolower($query);
@@ -69,10 +106,16 @@ class RagService
         return $context;
     }
 
+    /**
+     * Retrieve relevant data from the database using semantic search.
+     * 
+     * @param string $query The user's query
+     * @return string The relevant data found in the database, formatted as a string
+     */
     public function getSemanticRelevantData($query)
     {
         $result = "";
-        
+
         // Konfigurasi semantic search untuk setiap tabel
         $tablesConfig = [
             'pengumuman' => [
@@ -110,8 +153,8 @@ class RagService
         foreach ($tablesConfig as $tableName => $config) {
             try {
                 $relevantData = $this->embeddingService->semanticSearch(
-                    $query, 
-                    $tableName, 
+                    $query,
+                    $tableName,
                     $config['columns'],
                     null, // limit
                     0.3 // threshold similarity
@@ -119,11 +162,11 @@ class RagService
 
                 if (!empty($relevantData)) {
                     $result .= "INFORMASI " . strtoupper(str_replace('_', ' ', $tableName)) . ":\n";
-                    
+
                     foreach ($relevantData as $item) {
                         $result .= $config['display']($item);
                     }
-                    
+
                     $result .= "\n";
                 }
             } catch (\Exception $e) {
@@ -142,11 +185,11 @@ class RagService
                 ->get();
 
             if ($pengumuman->isNotEmpty()) {
-                $result = "INFORMASI PENGUMUMAN:\n";
+                $result = "INFORMASI PENGUMUMAN:";
                 foreach ($pengumuman as $p) {
-                    $result .= "Judul: {$p->judul}\n";
-                    $result .= "Tanggal: {$p->tanggal}\n";
-                    $result .= "Isi: " . substr($p->isi, 0, 500) . "...\n\n";
+                    $result .= "Judul: " . substr($p->judul, 0, 200);
+                    $result .= "Isi: " . substr($p->isi, 0, 200);
+                    $result .= "Tanggal:" . substr($p->tanggal, 0, 200);
                 }
                 return $result;
             }
@@ -309,6 +352,7 @@ class RagService
             2. JANGAN membuat informasi jika tidak ada di database
             3. Jika informasi tidak lengkap, jelaskan dengan jujur
             4. Gunakan format yang mudah dibaca
+            5. Susun jawaban dengan rapi dan jelas, tidak perlu menambahkan spasi yang belebihan
 
             # INFORMASI DATABASE KAMPUS:
             {$context}
@@ -326,7 +370,25 @@ class RagService
         PROMPT;
     }
 
-     private function analyzeQueryType($query)
+    /**
+     * Analyze the given query and determine its type.
+     *
+     * The query type is determined by matching the query with regular expressions.
+     * If the query matches multiple types, they are concatenated with a '+' in between.
+     * If the query does not match any type, it is classified as 'UMUM'.
+     *
+     * The types are:
+     * - PENGUMUMAN: pengumuman, announcement, news
+     * - PROGRAM_STUDI: prodi, program studi, jurusan, major
+     * - HIMPUNAN: himpunan, organisasi, hmti
+     * - LOWONGAN: lowongan, job, vacancy, asisten
+     * - ALUMNI: alumni, graduate, wisuda
+     * - DOSEN: dosen, lecturer, pengajar
+     *
+     * @param string $query the query to analyze
+     * @return string the query type
+     */
+    private function analyzeQueryType($query)
     {
         $query = strtolower($query);
         $types = [];
@@ -345,62 +407,82 @@ class RagService
         return implode(' + ', $types);
     }
 
+    /**
+     * Handles user queries about the chatbot's identity.
+     *
+     * The queries can be in the form of:
+     * - "Siapa kamu?"
+     * - "Perkenalkan diri"
+     * - "Nama kamu"
+     * - "Kamu siapa"
+     * - "Kamu dibuat siapa?"
+     * - "Pembuat kamu siapa?"
+     * - "Developer"
+     * - "Kemampuan"
+     * - "Bisa apa"
+     * - "Fitur"
+     *
+     * The function will return a response with the chatbot's identity information.
+     * If the query is not recognized, the function will return null.
+     *
+     * @param $userQuery The user's query
+     * @return The response to the user's query, or null if the query is not recognized.
+     */
     private function handleIdentityQuery($userQuery)
     {
         $identity = $this->chatbotIdentity;
         $query = strtolower($userQuery);
 
-        if (
-            strpos($query, 'siapa kamu') !== false ||
-            strpos($query, 'perkenalkan diri') !== false ||
-            strpos($query, 'nama kamu') !== false ||
-            strpos($query, 'kamu siapa') !== false
-        ) {
+        switch (true) {
+            case str_contains($query, 'siapa kamu') || str_contains($query, 'perkenalkan diri') || str_contains($query, 'nama kamu') || str_contains($query, 'kamu siapa'):
+                $response = "Halo! Saya {$identity['name']}, {$identity['role']} dari ";
+                $response .= "{$identity['department']} di {$identity['university']}. ";
+                $response .= "Saya di sini untuk membantu Anda dengan berbagai informasi seputar kampus. ";
+                $response .= "Saya dapat memberikan informasi tentang pengumuman, program studi, ";
+                $response .= "himpunan mahasiswa, lowongan asisten dosen, berita alumni, dan informasi dosen. ";
+                $response .= "Ada yang bisa saya bantu hari ini? 😊";
 
-            $response = "Halo! Saya {$identity['name']}, {$identity['role']} dari ";
-            $response .= "{$identity['department']} di {$identity['university']}. ";
-            $response .= "Saya di sini untuk membantu Anda dengan berbagai informasi seputar kampus. ";
-            $response .= "Saya dapat memberikan informasi tentang pengumuman, program studi, ";
-            $response .= "himpunan mahasiswa, lowongan asisten dosen, berita alumni, dan informasi dosen. ";
-            $response .= "Ada yang bisa saya bantu hari ini? 😊";
+                return $response;
+            case str_contains($query, 'kamu dibuat') || str_contains($query, 'pembuat kamu') || str_contains($query, 'developer'):
+                $response = "Saya {$identity['name']} dikembangkan oleh tim Program Studi Teknologi Informasi ";
+                $response .= "{$identity['university']} untuk membantu memberikan informasi kampus secara cepat dan akurat. ";
+                $response .= "Saya menggunakan teknologi AI yang terintegrasi dengan database kampus untuk memberikan ";
+                $response .= "respons yang tepat dan informatif.";
 
-            return $response;
+                return $response;
+                break;
+
+            case str_contains($query, 'kemampuan') || str_contains($query, 'bisa apa') || str_contains($query, 'fitur'):
+                $response = "Sebagai {$identity['role']}, saya dapat membantu Anda dengan: \n\n";
+                $response .= "📋 Informasi Pengumuman - pengumuman terbaru, pengumuman penting\n";
+                $response .= "🎓 Program Studi - informasi tentang TI, kurikulum, akreditasi\n";
+                $response .= "👥 Himpunan Mahasiswa - profil HMTI, kegiatan, kepengurusan\n";
+                $response .= "💼 Lowongan Asisten - lowongan asisten dosen, persyaratan\n";
+                $response .= "📰 Berita Alumni - kesuksesan alumni, kegiatan alumni\n";
+                $response .= "👨‍🏫 Informasi Dosen - profil dosen, bidang keahlian\n\n";
+                $response .= "Ada yang spesifik yang ingin Anda tanyakan?";
+
+                return $response;
+
+            default:
+                return false;
         }
-
-        if (
-            strpos($query, 'kamu dibuat') !== false ||
-            strpos($query, 'pembuat kamu') !== false ||
-            strpos($query, 'developer') !== false
-        ) {
-
-            $response = "Saya {$identity['name']} dikembangkan oleh tim Program Studi Teknologi Informasi ";
-            $response .= "{$identity['university']} untuk membantu memberikan informasi kampus secara cepat dan akurat. ";
-            $response .= "Saya menggunakan teknologi AI yang terintegrasi dengan database kampus untuk memberikan ";
-            $response .= "respons yang tepat dan informatif.";
-
-            return $response;
-        }
-
-        if (
-            strpos($query, 'kemampuan') !== false ||
-            strpos($query, 'bisa apa') !== false ||
-            strpos($query, 'fitur') !== false
-        ) {
-
-            $response = "Sebagai {$identity['role']}, saya dapat membantu Anda dengan: \n\n";
-            $response .= "📋 **Informasi Pengumuman** - pengumuman terbaru, pengumuman penting\n";
-            $response .= "🎓 **Program Studi** - informasi tentang TI, kurikulum, akreditasi\n";
-            $response .= "👥 **Himpunan Mahasiswa** - profil HMTI, kegiatan, kepengurusan\n";
-            $response .= "💼 **Lowongan Asisten** - lowongan asisten dosen, persyaratan\n";
-            $response .= "📰 **Berita Alumni** - kesuksesan alumni, kegiatan alumni\n";
-            $response .= "👨‍🏫 **Informasi Dosen** - profil dosen, bidang keahlian\n\n";
-            $response .= "Ada yang spesifik yang ingin Anda tanyakan?";
-
-            return $response;
-        }
-
         return null;
     }
+    /**
+     * Memeriksa apakah query perlu perkenalan atau tidak.
+     * 
+     * Query yang memerlukan perkenalan:
+     * 1. Pertanyaan tentang identitas
+     * 2. Greeting/sapaan
+     * 3. Pertanyaan umum tanpa konteks spesifik
+     * 
+     * Query yang tidak memerlukan perkenalan:
+     * 1. Query spesifik tentang konten
+     * 
+     * @param string $query query dari user
+     * @return boolean true jika perlu perkenalan, false jika tidak
+     */
     private function needsIntroduction($query)
     {
         $query = strtolower($query);
@@ -415,27 +497,35 @@ class RagService
         $generalKeywords = ['help', 'bantuan', 'bantu', 'bisa apa', 'fitur'];
 
         foreach ($identityKeywords as $keyword) {
-            if (strpos($query, $keyword) !== false) return true;
+            if (str_contains($query, $keyword) !== false) return true;
         }
 
         foreach ($greetingKeywords as $keyword) {
-            if (strpos($query, $keyword) !== false) return true;
+            if (str_contains($query, $keyword) !== false) return true;
         }
 
         foreach ($generalKeywords as $keyword) {
-            if (strpos($query, $keyword) !== false) return true;
+            if (str_contains($query, $keyword) !== false) return true;
         }
 
         // Jika query spesifik tentang konten, tidak perlu perkenalan
         $contentKeywords = ['pengumuman', 'dosen', 'prodi', 'himpunan', 'lowongan', 'alumni', 'jadwal', 'matkul'];
         foreach ($contentKeywords as $keyword) {
-            if (strpos($query, $keyword) !== false) return false;
+            if (str_contains($query, $keyword) !== false) return false;
         }
 
         // Default: tidak perlu perkenalan
         return false;
     }
 
+    /**
+     * Mengembalikan jawaban yang sesuai dengan prompt yang diberikan.
+     * 
+     * @param string $prompt prompt yang diberikan
+     * @return string jawaban yang sesuai dengan prompt
+     * 
+     * @throws \Exception jika Gemini API gagal atau respons tidak sesuai
+     */
     public function generateResponse($prompt)
     {
         try {
@@ -509,6 +599,14 @@ class RagService
         return $this->chatbotIdentity;
     }
 
+    /**
+     * Mendapatkan response default identitas chatbot.
+     *
+     * Response ini digunakan jika respons dari Gemini tidak sesuai dengan format yang diharapkan.
+     * Response ini berisi informasi tentang identitas chatbot, yaitu nama, peran, unit/program studi, dan universitas.
+     *
+     * @return string Response default identitas chatbot
+     */
     private function getDefaultIdentityResponse()
     {
         $identity = $this->chatbotIdentity;

@@ -1,50 +1,91 @@
 import React from 'react';
 import type { Message } from '../types';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 interface MessageBubbleProps {
   message: Message;
   isWelcome?: boolean;
 }
 
-export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isWelcome = false }) => {
+export const MessageBubble: React.FC<MessageBubbleProps> =
+({ message, isWelcome = false }) => {
   const isUser = message.sender === 'user';
-  
+
+  const markdownComponents = {
+    // Contoh custom untuk <strong>
+    strong: ({ node, ...props }: any) => (
+      <strong className="font-bold text-blue-700" {...props} />
+    ),
+    // Contoh custom untuk <li>
+    li: ({ node, ...props }: any) => (
+      <li className="list-disc ml-6 text-gray-800" {...props} />
+    ),
+    // Contoh custom untuk paragraph (<p>)
+    p: ({ node, ...props }: any) => (
+      <p className="mb-2 leading-relaxed" {...props} />
+    ),
+    // Kamu bisa tambahkan elemen lain seperti h1,h2,a,code,dll.
+    h1: ({ node, ...props }: any) => (
+      <h1 className="text-2xl font-bold my-4" {...props} />
+    ),
+    h2: ({ node, ...props }: any) => (
+      <h2 className="text-xl font-semibold my-3" {...props} />
+    ),
+    a: ({ node, href, ...props }: any) => (
+      <a
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-blue-600 hover:underline"
+        {...props}
+      />
+    ),
+    code: ({ node, inline, className, children, ...props }: any) =>
+      inline ? (
+        <code className="bg-gray-100 px-1 rounded" {...props}>
+          {children}
+        </code>
+      ) : (
+        <pre className="bg-gray-900 text-white p-3 rounded overflow-x-auto">
+          <code>{children}</code>
+        </pre>
+      ),
+  };
+
   return (
-    <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} animate-fade-in`}>
+    <div
+      className={`flex ${isUser ? 'justify-end' : 'justify-start'} animate-fade-in`}
+    >
       <div
         className={`my-2 max-w-xs md:max-w-md lg:max-w-lg px-5 py-3 rounded-lg transition-all duration-200 hover:scale-[1.02] ${
           isWelcome
-            ? 'bg-gradient-to-r from-blue-100 to-purple-100 border-2 border-blue-200/50 shadow-lg rounded-3xl'
+            ? 'border-blue-200/50 shadow-lg rounded-3xl'
             : isUser
-            ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg rounded-3xl'
+            ? 'text-black shadow-lg rounded-3xl bg-gray-200'
             : 'bg-white/90 backdrop-blur-md border border-gray-200/60 shadow-lg rounded-3xl'
         }`}
       >
-        {isWelcome && (
-          <div className="flex items-center mb-3">
-            <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-2xl flex items-center justify-center mr-3">
-              <span className="text-white text-sm font-bold">F</span>
-            </div>
-            <div>
-              <span className="text-sm font-semibold text-blue-600">Fernando</span>
-              <span className="text-xs text-gray-500 ml-2">• Asisten Virtual</span>
-            </div>
-          </div>
-        )}
-        
-        <p className="whitespace-pre-wrap leading-relaxed text-gray-800">
-          {message.text}
-        </p>
-        
+        <div className="markdown prose prose-sm text-left">
+          <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
+            components={markdownComponents}
+          >
+            {message.text}
+          </ReactMarkdown>
+        </div>
+         {/* <p className="markdown prose prose-sm whitespace-pre-wrap leading-relaxed text-gray-800 text-left">
+            {message.text}
+        </p> */}
         <div className="flex justify-between items-center mt-3 pt-2 border-t border-white/20">
-          <span className={`text-xs ${isUser ? 'text-blue-100' : 'text-gray-500'}`}>
-            {message.timestamp.toLocaleTimeString([], { 
-              hour: '2-digit', 
-              minute: '2-digit' 
+          <span className={`text-xs ${isUser ? 'text-gray-400' : 'text-gray-500'}`}>
+            {message.timestamp.toLocaleTimeString([], {
+              hour: '2-digit',
+              minute: '2-digit',
             })}
           </span>
           {!isUser && message.source && message.source !== 'system' && (
-            <span className={`text-xs ${isUser ? 'text-blue-100' : 'text-gray-400'}`}>
+            <span className="text-xs text-gray-400">
               {message.source === 'database' ? '📊 Database' : '🤖 AI'}
             </span>
           )}

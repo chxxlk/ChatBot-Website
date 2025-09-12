@@ -19,7 +19,6 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
   isLoading,
   error,
   onSendMessage,
-  onClearChat,
   onClearError,
   isModal = false,
 }) => {
@@ -54,7 +53,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
           // Fallback welcome message
           const fallbackMsg: Message = {
             id: 'welcome-fallback',
-            text: 'Halo! 👋 Saya Fernando, Asisten Virtual dari Program Studi Teknologi Informasi UKSW. Ada yang bisa saya bantu?',
+            text: 'Halo! 👋 Saya Chris, Asisten Virtual dari Program Studi Teknologi Informasi UKSW. Ada yang bisa saya bantu?',
             sender: 'ai',
             timestamp: new Date(),
             source: 'system',
@@ -77,7 +76,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
     <div className={`flex flex-col ${isModal ? 'h-full rounded-lg' : 'h-screen'} bg-gradient-to-br from-slate-50 to-blue-50`}>
 
         {/* Area pesan */}
-        <div className="flex-1 overflow-y-auto p-2 bg-white overflow-y-auto no-scrollbar">
+        <div className="flex-1 overflow-y-auto p-2 bg-white no-scrollbar">
           {displayMessages.length === 0 && !isLoading && (
             <div className="text-center text-gray-500 mt-10">
               <div className="animate-pulse">Memuat percakapan...</div>
