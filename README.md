@@ -7,7 +7,7 @@ Chatbot Powered by Gemini AI, Custom Chatbots for Specific Websites.
 # Tech Stack
 * *Backend  : Laravel 12, PHP 8.3.16*
 * *Frontend : React + Vite + Typescript*
-* *Database : MySQL*
+* *Database : MySQL (Local)*
 * *AI        : Gemini AI*
 # 📂 Project Structure
 >├── backend/        # Laravel project </br>
