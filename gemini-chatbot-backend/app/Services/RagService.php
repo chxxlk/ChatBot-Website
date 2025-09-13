@@ -346,6 +346,7 @@ class RagService
             8. Hanya perkenalkan diri jika ditanya tentang identitas atau untuk greeting
             9. Jawab dengan nada yang {$identity['tone']}
             10. Gunakan informasi database di bawah jika tersedia
+            11. Boleh tambahkan emote jika appropriate
             
             # INSTRUKSI KHUSUS LAINNYA:
             1. {$semanticInstruction}
@@ -450,16 +451,15 @@ class RagService
                 $response .= "respons yang tepat dan informatif.";
 
                 return $response;
-                break;
 
             case str_contains($query, 'kemampuan') || str_contains($query, 'bisa apa') || str_contains($query, 'fitur'):
                 $response = "Sebagai {$identity['role']}, saya dapat membantu Anda dengan: \n\n";
-                $response .= "📋 Informasi Pengumuman - pengumuman terbaru, pengumuman penting\n";
-                $response .= "🎓 Program Studi - informasi tentang TI, kurikulum, akreditasi\n";
-                $response .= "👥 Himpunan Mahasiswa - profil HMTI, kegiatan, kepengurusan\n";
-                $response .= "💼 Lowongan Asisten - lowongan asisten dosen, persyaratan\n";
-                $response .= "📰 Berita Alumni - kesuksesan alumni, kegiatan alumni\n";
-                $response .= "👨‍🏫 Informasi Dosen - profil dosen, bidang keahlian\n\n";
+                $response .= "* 📋 Informasi Pengumuman - pengumuman terbaru, pengumuman penting\n";
+                $response .= "* 🎓 Program Studi - informasi tentang TI, kurikulum, akreditasi\n";
+                $response .= "* 👥 Himpunan Mahasiswa - profil HMTI, kegiatan, kepengurusan\n";
+                $response .= "* 💼 Lowongan Asisten - lowongan asisten dosen, persyaratan\n";
+                $response .= "* 📰 Berita Alumni - kesuksesan alumni, kegiatan alumni\n\n";
+                // $response .= "* 👨‍🏫 Informasi Dosen - profil dosen, bidang keahlian\n\n";
                 $response .= "Ada yang spesifik yang ingin Anda tanyakan?";
 
                 return $response;

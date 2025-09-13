@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Base URL untuk Laravel 12.x backend
-const API_BASE_URL = 'http://localhost:8000/api';
+const API_BASE_URL = 'http://192.168.18.13:8000/api'; //ganti dengan ip kalian atau dengan localhost
 
 // Buat instance axios dengan konfigurasi default
 const apiClient = axios.create({
@@ -17,7 +17,7 @@ const apiClient = axios.create({
 // Tambahkan interceptor untuk logging
 apiClient.interceptors.request.use(
   (config) => {
-    console.log('Making API request to:', config.url);
+    // console.log('Making API request to:', config.url);
     return config;
   },
   (error) => {
@@ -47,14 +47,14 @@ apiClient.interceptors.response.use(
 
 export const sendChatMessage = async (message: string, sessionId: string = 'default') => {
   try {
-    console.log("Sending message to Laravel backend:", message);
+    // console.log("Sending message to Laravel backend:", message);
     
     const response = await apiClient.post('/chat', {
       message,
       session_id: sessionId
     });
     
-    console.log("Response from Laravel:", response.data);
+    // console.log("Response from Laravel:", response.data);
     return response.data;
   } catch (error: any) {
     console.error('Full error details from Laravel API:', error);
@@ -74,6 +74,14 @@ export const sendChatMessage = async (message: string, sessionId: string = 'defa
   }
 };
 
+/**
+ * Mengambil riwayat chat sesuai dengan session ID.
+ * Jika session ID tidak disediakan, maka default session ID adalah 'default'.
+ * 
+ * @param {string} sessionId - Session ID yang ingin diambil riwayat chatnya.
+ * @returns {Promise<object[]>} - Promise yang berisi dengan riwayat chat yang diambil.
+ * @throws {Error} - Jika terjadi error dalam mengambil riwayat chat, maka akan dilempar error dengan pesan yang sesuai.
+ */
 export const getChatHistory = async (sessionId: string = 'default') => {
   try {
     const response = await apiClient.get('/history', {
@@ -91,6 +99,13 @@ export const getChatHistory = async (sessionId: string = 'default') => {
   }
 };
 
+/**
+ * Menguji koneksi ke backend Laravel.
+ * Jika koneksi gagal, maka akan dilempar error dengan pesan yang sesuai.
+ * 
+ * @returns {Promise<object>} - Promise yang berisi dengan hasil tes koneksi.
+ * @throws {Error} - Jika terjadi error dalam menguji koneksi, maka akan dilempar error dengan pesan yang sesuai.
+ */
 export const testConnection = async () => {
   try {
     const response = await apiClient.get('/test');
@@ -101,6 +116,13 @@ export const testConnection = async () => {
   }
 };
 
+/**
+ * Menguji koneksi ke database Laravel.
+ * Jika koneksi gagal, maka akan dilempar error dengan pesan yang sesuai.
+ * 
+ * @returns {Promise<object>} - Promise yang berisi dengan hasil tes koneksi ke database.
+ * @throws {Error} - Jika terjadi error dalam menguji koneksi ke database, maka akan dilempar error dengan pesan yang sesuai.
+**/
 export const testDatabase = async () => {
   try {
     const response = await apiClient.get('/test-db');
@@ -111,6 +133,14 @@ export const testDatabase = async () => {
   }
 };
 
+/**
+ * Mengambil informasi tentang chatbot.
+ * Informasi yang diambil termasuk nama, deskripsi, dan versi.
+ * Jika gagal mengambil informasi, maka akan dilempar error dengan pesan yang sesuai.
+ * 
+ * @returns {Promise<object>} - Promise yang berisi dengan informasi chatbot.
+ * @throws {Error} - Jika terjadi error dalam mengambil informasi, maka akan dilempar error dengan pesan yang sesuai.
+**/
 export const getChatbotInfo = async () => {
   try {
     const response = await apiClient.get('/chatbot/info');
@@ -121,6 +151,14 @@ export const getChatbotInfo = async () => {
   }
 };
 
+/**
+ * Mengambil pesan welcome dari backend Laravel.
+ * Pesan welcome ini akan ditampilkan ketika user pertama kali membuka chatbot.
+ * Jika gagal mengambil pesan welcome, maka akan dilempar error dengan pesan yang sesuai.
+ * 
+ * @returns {Promise<object>} - Promise yang berisi dengan pesan welcome.
+ * @throws {Error} - Jika terjadi error dalam mengambil pesan welcome, maka akan dilempar error dengan pesan yang sesuai.
+**/
 export const getWelcomeMessage = async () => {
   try {
     const response = await apiClient.get('/chatbot/welcome');

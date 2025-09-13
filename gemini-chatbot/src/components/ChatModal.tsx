@@ -34,7 +34,7 @@ export const ChatModal: React.FC<ChatModalProps> = ({
             />
 
             {/* Modal */}
-            <div className="relative bg-white rounded-lg shadow-2xl w-full max-w-lg h-[800px] flex flex-col transform transition-all duration-300 ease-in-out">
+            <div className="relative bg-white rounded-lg shadow-2xl w-full max-w-md h-[600px] flex flex-col transform transition-all duration-300 ease-in-out">
                 {/* Header */}
                 <div className="flex items-center justify-between p-4 border-b bg-gradient-to-b from-blue-500 to-white text-white rounded-t-lg">
                     <div className="flex items-center space-x-3">

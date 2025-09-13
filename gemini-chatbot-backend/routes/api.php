@@ -15,5 +15,5 @@ Route::get('/history', [ChatbotController::class, 'getHistory']);
 
 
 // cek info dan welcome message
-// Route::get('/chatbot/info', [ChatbotInfoController::class, 'getInfo']);
-// Route::get('/chatbot/welcome', [ChatbotInfoController::class, 'getWelcomeMessage']);
+Route::get('/chatbot/info', [ChatbotInfoController::class, 'getInfo']);
+Route::get('/chatbot/welcome', [ChatbotInfoController::class, 'getWelcomeMessage']);
