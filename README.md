@@ -23,6 +23,8 @@ cd gemini-chatbot-backend
 composer install
 cp .env.example .env
 # Tambahkan Databse, Gemini API, Cors, dll di .env
+# Jalankan Migrate dan Seeder
+php artisan migrate:fresh --seed
 
 # Masuk folder frontend
 cd gemini-chatbot
