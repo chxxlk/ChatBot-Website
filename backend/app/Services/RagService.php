@@ -8,15 +8,17 @@ use Illuminate\Support\Facades\Log;
 
 class RagService
 {
-    private $apiKey;
+    // private $apiKey;
     private $chatbotIdentity;
     private $embeddingService;
+    private $openRouterService;
 
     public function __construct()
     {
-        $this->apiKey = env('GEMINI_API_KEY');
+        // $this->apiKey = env('GEMINI_API_KEY');
         $this->chatbotIdentity = $this->getChatbotIdentity();
         $this->embeddingService = new EmbeddingService();
+        $this->openRouterService = new OpenRouterService();
     }
 
     /**
@@ -156,8 +158,8 @@ class RagService
                     $query,
                     $tableName,
                     $config['columns'],
-                    null, // limit
-                    0.3 // threshold similarity
+                    3, // limit bisa atur ke null untuk menampilkan semua
+                    0.6 // threshold similarity atau bisa 0.3
                 );
 
                 if (!empty($relevantData)) {
@@ -346,7 +348,6 @@ class RagService
             8. Hanya perkenalkan diri jika ditanya tentang identitas atau untuk greeting
             9. Jawab dengan nada yang {$identity['tone']}
             10. Gunakan informasi database di bawah jika tersedia
-            11. Boleh tambahkan emote jika appropriate
             
             # INSTRUKSI KHUSUS LAINNYA:
             1. {$semanticInstruction}
@@ -354,6 +355,7 @@ class RagService
             3. Jika informasi tidak lengkap, jelaskan dengan jujur
             4. Gunakan format yang mudah dibaca
             5. Susun jawaban dengan rapi dan jelas, tidak perlu menambahkan spasi yang belebihan
+            6. Untuk list, gunakan bumbering bukan bullet points
 
             # INFORMASI DATABASE KAMPUS:
             {$context}
@@ -366,6 +368,9 @@ class RagService
             - Jawab dengan menggunakan informasi identitas Anda
             - Referensikan informasi dari database jika relevan
             - Akhiri dengan penawaran bantuan lebih lanjut
+            - Boleh tambahkan emote jika appropriate (makasimal 5 emoji)
+            - Bold untuk judul dan informasi penting
+            - pisahkan section dengan newlines
 
             JAWABAN:
         PROMPT;
@@ -528,65 +533,71 @@ class RagService
      */
     public function generateResponse($prompt)
     {
+        // try {
+        //     $response = Http::timeout(30)
+        //         ->post('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' . $this->apiKey, [
+        //             'contents' => [
+        //                 [
+        //                     'parts' => [
+        //                         ['text' => $prompt]
+        //                     ]
+        //                 ]
+        //             ],
+        //             'generationConfig' => [
+        //                 'temperature' => 0.3,
+        //                 'topK' => 20,
+        //                 'topP' => 0.8,
+        //                 'maxOutputTokens' => 1024,
+        //             ],
+        //             'safetySettings' => [
+        //                 [
+        //                     'category' => 'HARM_CATEGORY_HARASSMENT',
+        //                     'threshold' => 'BLOCK_MEDIUM_AND_ABOVE'
+        //                 ],
+        //                 [
+        //                     'category' => 'HARM_CATEGORY_HATE_SPEECH',
+        //                     'threshold' => 'BLOCK_MEDIUM_AND_ABOVE'
+        //                 ]
+        //             ]
+        //         ]);
+
+        //     if ($response->failed()) {
+        //         throw new \Exception('Gagal mendapatkan respons dari Gemini');
+        //     }
+
+        //     $data = $response->json();
+
+        //     if (isset($data['candidates'][0]['content']['parts'][0]['text'])) {
+        //         $responseText = $data['candidates'][0]['content']['parts'][0]['text'];
+
+        //         // Post-processing: Pastikan response tidak mengandung penyangkalan identitas
+        //         $denialPatterns = [
+        //             '/sebagai (ai|artificial intelligence)/i',
+        //             '/sebagai model bahasa/i',
+        //             '/saya tidak memiliki identitas/i',
+        //             '/saya tidak memiliki nama/i'
+        //         ];
+
+        //         foreach ($denialPatterns as $pattern) {
+        //             if (preg_match($pattern, $responseText)) {
+        //                 // Ganti dengan response identitas yang benar
+        //                 return $this->getDefaultIdentityResponse();
+        //             }
+        //         }
+
+        //         return $responseText;
+        //     } else {
+        //         Log::error('Gemini response format: ' . json_encode($data));
+        //         throw new \Exception('Format respons tidak sesuai');
+        //     }
+        // } catch (\Exception $e) {
+        //     Log::error('Gemini API error: ' . $e->getMessage());
+        //     return "Maaf, saya sedang mengalami gangguan teknis. Silakan coba lagi nanti.";
+        // }
         try {
-            $response = Http::timeout(30)
-                ->post('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' . $this->apiKey, [
-                    'contents' => [
-                        [
-                            'parts' => [
-                                ['text' => $prompt]
-                            ]
-                        ]
-                    ],
-                    'generationConfig' => [
-                        'temperature' => 0.3,
-                        'topK' => 20,
-                        'topP' => 0.8,
-                        'maxOutputTokens' => 1024,
-                    ],
-                    'safetySettings' => [
-                        [
-                            'category' => 'HARM_CATEGORY_HARASSMENT',
-                            'threshold' => 'BLOCK_MEDIUM_AND_ABOVE'
-                        ],
-                        [
-                            'category' => 'HARM_CATEGORY_HATE_SPEECH',
-                            'threshold' => 'BLOCK_MEDIUM_AND_ABOVE'
-                        ]
-                    ]
-                ]);
-
-            if ($response->failed()) {
-                throw new \Exception('Gagal mendapatkan respons dari Gemini');
-            }
-
-            $data = $response->json();
-
-            if (isset($data['candidates'][0]['content']['parts'][0]['text'])) {
-                $responseText = $data['candidates'][0]['content']['parts'][0]['text'];
-
-                // Post-processing: Pastikan response tidak mengandung penyangkalan identitas
-                $denialPatterns = [
-                    '/sebagai (ai|artificial intelligence)/i',
-                    '/sebagai model bahasa/i',
-                    '/saya tidak memiliki identitas/i',
-                    '/saya tidak memiliki nama/i'
-                ];
-
-                foreach ($denialPatterns as $pattern) {
-                    if (preg_match($pattern, $responseText)) {
-                        // Ganti dengan response identitas yang benar
-                        return $this->getDefaultIdentityResponse();
-                    }
-                }
-
-                return $responseText;
-            } else {
-                Log::error('Gemini response format: ' . json_encode($data));
-                throw new \Exception('Format respons tidak sesuai');
-            }
+            return $this->openRouterService->generateResponse($prompt);
         } catch (\Exception $e) {
-            Log::error('Gemini API error: ' . $e->getMessage());
+            Log::error('RAG Service Error: ' . $e->getMessage());
             return "Maaf, saya sedang mengalami gangguan teknis. Silakan coba lagi nanti.";
         }
     }

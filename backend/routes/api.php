@@ -17,3 +17,6 @@ Route::get('/history', [ChatbotController::class, 'getHistory']);
 // cek info dan welcome message
 Route::get('/chatbot/info', [ChatbotInfoController::class, 'getInfo']);
 Route::get('/chatbot/welcome', [ChatbotInfoController::class, 'getWelcomeMessage']);
+
+// test routes untuk OpenRoutes
+Route::get('/test/openrouter', [ChatbotController::class, 'testOpenRouter']);

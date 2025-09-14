@@ -1,12 +1,12 @@
 import axios from 'axios';
 
 // Base URL untuk Laravel 12.x backend
-const API_BASE_URL = 'http://192.168.18.13:8000/api'; //ganti dengan ip kalian atau dengan localhost
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL; //ganti dengan ip kalian atau dengan localhost di .env
 
 // Buat instance axios dengan konfigurasi default
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 10000,
+  timeout: 50000,
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
@@ -165,6 +165,7 @@ export const getWelcomeMessage = async () => {
     return response.data;
   } catch (error: any) {
     console.error('Failed to get welcome message:', error);
+    console.log('Base API URL :', API_BASE_URL);
     throw new Error(`Gagal mengambil pesan welcome: ${error.message}`);
   }
 };

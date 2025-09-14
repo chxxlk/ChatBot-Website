@@ -51,7 +51,7 @@ class ChatbotInfoController extends Controller
         $info = $this->ragService->getChatbotInfo();
 
         $welcomeMessage = "Halo! 👋 Saya {$info['name']}, {$info['role']} dari {$info['department']} di {$info['university']}. ";
-        $welcomeMessage .= "Saya siap membantu Anda dengan informasi seputar kampus. Ada yang bisa saya bantu?";
+        $welcomeMessage .= "Saya siap membantu Anda dengan informasi seputar program studi Teknik Informatika. Ada yang bisa saya bantu?";
 
         return response()->json([
             'success' => true,

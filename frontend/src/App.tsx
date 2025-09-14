@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { ChatModal } from './components/ChatModal';
 import { FloatingChatButton } from './components/FloatingChatButton';
-import { useGemini } from './hooks/useGemini';
+import { useGemini } from './hooks/useOpenRouter';
 import './App.css';
 
 function App() {

@@ -179,4 +179,30 @@ class ChatbotController extends Controller
             ], 500);
         }
     }
+
+    public function testOpenRouter(Request $request)
+    {
+        try {
+            $openRouterService = new \App\Services\OpenRouterService();
+
+            // Test connection
+            $models = $openRouterService->getModels();
+
+            // Test chat
+            $testResponse = $openRouterService->generateResponse('Halo, perkenalkan dirimu!');
+
+            return response()->json([
+                'success' => true,
+                'models' => $models,
+                'test_response' => $testResponse,
+                'message' => 'OpenRouter connection successful'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => $e->getMessage(),
+                'message' => 'OpenRouter connection failed'
+            ], 500);
+        }
+    }
 }
