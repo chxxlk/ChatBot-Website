@@ -1,10 +1,7 @@
 # ChatBot-Website 🚀
 
-[![forthebadge](https://forthebadge.com/images/badges/made-with-typescript.svg)](https://www.typescriptlang.org/)
 [![forthebadge](https://forthebadge.com/images/badges/made-with-react.svg)](https://react.dev/)
 [![forthebadge](https://forthebadge.com/images/badges/made-with-php.svg)](https://www.php.net/)
-
-[![forthebadge](https://forthebadge.com/images/badges/approved-by-my-mom.svg)](http://forthebadge.com)
 
 Chatbot Powered by Gemini AI, Custom Chatbots for Specific Websites.
 # 📌 Feature
