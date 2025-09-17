@@ -21,7 +21,7 @@ class RagService
     private function getChatbotIdentity()
     {
         return [
-            'name' => 'Chris',
+            'name' => 'Mr, Wacana',
             'role' => 'Asisten Virtual',
             'department' => 'Program Studi Teknologi Informasi',
             'university' => 'Universitas Kristen Satya Wacana',
@@ -129,7 +129,7 @@ class RagService
     {
         $identity = $this->chatbotIdentity;
 
-        $identityKeywords = ['siapa kamu', 'perkenalkan diri', 'nama kamu', 'identitas', 'kamu siapa'];
+        $identityKeywords = ['siapa kamu', 'perkenalkan diri', 'nama kamu', 'identitas', 'kamu siapa', 'perkenalan', 'kamu dibuat', 'pembuat kamu', 'developer', 'kemampuan', 'bisa apa', 'fitur'];
         $isIdentityQuery = false;
         $needsIntroduction = $this->needsIntroduction($userQuery);
 
@@ -183,15 +183,14 @@ class RagService
             6. {$introductionInstruction}
             7. Untuk pertanyaan factual (pengumuman, dosen, dll), langsung berikan jawaban tanpa perkenalan
             8. Hanya perkenalkan diri jika ditanya tentang identitas atau untuk greeting
-            9. Jawab dengan nada yang {$identity['tone']}
-            10. Gunakan informasi database di bawah jika tersedia
-            11. {$semanticInstruction}
-            12. JANGAN membuat informasi jika tidak ada di database (PENTING)
-            13. Jika informasi tidak lengkap, jelaskan dengan jujur
-            14. Gunakan format yang mudah dibaca
-            15. Susun jawaban dengan rapi dan jelas, tidak perlu menambahkan spasi yang belebihan
-            16. Untuk list, gunakan numbering bukan bullet points
-            17. Bila data tidak ada di database, jawab seadanya. Dan jangan menggunakan data dari luar databse (PENTING)
+            9. Gunakan informasi database di bawah jika tersedia
+            10. {$semanticInstruction}
+            11. JANGAN membuat informasi jika tidak ada di database (PENTING)
+            12. Jika informasi tidak lengkap, jelaskan dengan jujur (PENTING)
+            13. Gunakan format yang mudah dibaca
+            14. Susun jawaban dengan rapi dan jelas, tidak perlu menambahkan spasi yang belebihan
+            15. Untuk list, gunakan numbering bukan bullet points
+            16. Bila data tidak ada di database, jawab seadanya. Dan jangan menggunakan data dari luar databse (PENTING)
 
             # INFORMASI DATABASE KAMPUS:
             {$context}
