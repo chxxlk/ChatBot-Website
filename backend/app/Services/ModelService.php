@@ -5,7 +5,7 @@ namespace App\Services;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
-class OpenRouterService
+class ModelService
 {
     private $apiKey;
     private $model;
@@ -20,12 +20,17 @@ class OpenRouterService
 
     public function generateResponse($prompt)
     {
+        Log::info('Kirim prompt ke OpenRouter', [
+            'model' => $this->model,
+            'prompt_preview' => substr($prompt, 0, 200) . '...' // biar log gak kepanjangan
+        ]);
+
         try {
-            $response = Http::timeout(60)
+            $response = Http::timeout(120)
                 ->withHeaders([
                     'Authorization' => 'Bearer ' . $this->apiKey,
                     'Content-Type' => 'application/json',
-                    'HTTP-Referer' => env('APP_URL', 'http://localhost:8000'),
+                    'HTTP-Referer' => env('APP_URL'),
                     'X-Title' => 'S1 TI Chatbot'
                 ])
                 ->post($this->baseUrl . '/chat/completions', [
@@ -41,13 +46,17 @@ class OpenRouterService
                         ]
                     ],
                     'temperature' => 0.7,
-                    'max_tokens' => 1024,
+                    // 'max_tokens' => 1024,
                     'stream' => false
                 ]);
+            Log::info('Response dari OpenRouter', [
+                'status' => $response->status(),
+                'body'   => $response->body()
+            ]);
 
             if ($response->failed()) {
                 Log::error('OpenRouter API Error: ' . $response->body());
-                throw new \Exception('Gagal mendapatkan respons dari DeepSeek: ' . $response->status());
+                throw new \Exception('Gagal mendapatkan respons dari Model: ' . $response->status());
             }
 
             $data = $response->json();
@@ -58,7 +67,6 @@ class OpenRouterService
                 Log::error('OpenRouter response format: ' . json_encode($data));
                 throw new \Exception('Format respons tidak sesuai dari OpenRouter');
             }
-
         } catch (\Exception $e) {
             Log::error('OpenRouter Service Error: ' . $e->getMessage());
             throw new \Exception('Terjadi kesalahan: ' . $e->getMessage());

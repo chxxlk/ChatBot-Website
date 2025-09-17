@@ -6,7 +6,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL; //ganti dengan ip kalian
 // Buat instance axios dengan konfigurasi default
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 50000,
+  timeout: 120000,
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json',

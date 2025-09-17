@@ -1,22 +1,20 @@
 <?php
 
-namespace App\Services;
+namespace App\Services\Ollama;
 
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 
-class EmbeddingService
+class OllamaEmbeddingService
 {
-    private $apiKey;
     private $baseUrl;
     private $model;
 
     public function __construct()
     {
-        $this->apiKey = env('HF_API_KEY');
-        $this->baseUrl = env('HF_API_BASE');
-        $this->model = env('HF_MODEL');
+        $this->baseUrl = env('OLLAMA_BASE_URL');
+        $this->model = env('OLLAMA_EMBEDDING_MODEL');
     }
 
     /**
@@ -29,19 +27,18 @@ class EmbeddingService
                 return null;
             }
 
-            $url = "{$this->baseUrl}/nebius/v1/embeddings";
-            Log::info('Request ke HuggingFace', ['url' => $url]);
+            $url = "{$this->baseUrl}/api/embeddings";
 
-            $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . $this->apiKey,
-            ])->timeout(180)
+            Log::info('Request ke Ollama', ['url' => $url]);
+
+            $response = Http::timeout(180)
                 ->post($url, [
                     'model' => $this->model,
-                    'input' => $text,
+                    'inputs' => $text,
                 ]);
 
 
-            Log::info('Response HF', [
+            Log::info('Response Ollama', [
                 'status' => $response->status(),
                 'body'   => $response->body()
             ]);
@@ -49,27 +46,29 @@ class EmbeddingService
             if ($response->successful()) {
                 $data = $response->json();
 
-                Log::info('HF Raw embedding response: ', $data);
+                Log::info('Ollama Raw embedding response: ', $data);
                 Log::info('Embedding berhasil', ['dimensi' => count($data[0] ?? [])]);
 
+                // kasus 1: [[...]] (array 2D)
                 if (is_array($data) && isset($data[0]) && is_array($data[0])) {
                     return $data[0];
                 }
 
+                // kasus 2: {"embedding": [...]} 
                 if (isset($data['embedding']) && is_array($data['embedding'])) {
                     return $data['embedding'];
                 }
 
-                Log::warning('Embedding response tidak sesuai', ['response' => $data]);
-                return null;
+                // fallback: return raw data
+                return $data;
             }
-            Log::error('HF Embedding failed', [
+            Log::error('Ollama Embedding failed', [
                 'status' => $response->status(),
                 'body'   => $response->body()
             ]);
             return null;
         } catch (\Exception $e) {
-            Log::error('HF Embedding error: ' . $e->getMessage());
+            Log::error('Ollama Embedding error: ' . $e->getMessage());
             return null;
         }
     }
@@ -86,7 +85,6 @@ class EmbeddingService
             if ($vector) {
                 $embeddings[] = $vector;
             }
-            if (! $vector) Log::warning('Embedding gagal untuk text', ['text' => $text]);
         }
 
         return $embeddings;
@@ -224,6 +222,7 @@ class EmbeddingService
             return array_slice(array_map(fn($r) => $r['item'], $scoredResults), 0, $limit);
         } catch (\Exception $e) {
             Log::error('Optimized semantic search error: ' . $e->getMessage());
+            return DB::table($table)->limit($limit)->get();
         }
     }
 }

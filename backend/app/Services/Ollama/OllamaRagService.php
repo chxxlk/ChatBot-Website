@@ -1,22 +1,22 @@
 <?php
 
-namespace App\Services;
+namespace App\Services\Ollama;
 
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Http;
+use App\Services\Ollama\OllamaEmbeddingService as OllamaOllamaEmbeddingService;
+use App\Services\Ollama\OllamaService as OllamaOllamaService;
 use Illuminate\Support\Facades\Log;
 
-class RagService
+class OllamaRagService
 {
     private $chatbotIdentity;
-    private $embeddingService;
-    private $openRouterService;
+    private $OllamaEmbeddingService;
+    private $OllamaService;
 
     public function __construct()
     {
         $this->chatbotIdentity = $this->getChatbotIdentity();
-        $this->embeddingService = new EmbeddingService();
-        $this->openRouterService = new ModelService();
+        $this->OllamaEmbeddingService = new OllamaOllamaEmbeddingService();
+        $this->OllamaService = new OllamaOllamaService();
     }
     private function getChatbotIdentity()
     {
@@ -93,7 +93,7 @@ class RagService
             ],
         ];
 
-        $embeddingService = $this->embeddingService;
+        $embeddingService = new OllamaOllamaEmbeddingService;
 
         foreach ($tablesConfig as $tableName => $config) {
             try {
@@ -103,7 +103,7 @@ class RagService
                     $tableName,
                     $config['columns'],
                     3, // limit
-                    0.6 // threshold - mungkin perlu disesuaikan untuk model baru
+                    0.3 // threshold - mungkin perlu disesuaikan untuk model baru
                 );
 
                 if (!empty($relevantData)) {
@@ -234,7 +234,7 @@ class RagService
         $query = strtolower($userQuery);
 
         switch (true) {
-            case str_contains($query, 'siapa kamu') || str_contains($query, 'perkenalkan diri') || str_contains($query, 'nama kamu') || str_contains($query, 'kamu siapa' || str_contains($query, 'perkenalan')):
+            case str_contains($query, 'siapa kamu') || str_contains($query, 'perkenalkan diri') || str_contains($query, 'nama kamu') || str_contains($query, 'kamu siapa'):
                 $response = "Halo! Saya {$identity['name']}, {$identity['role']} dari ";
                 $response .= "{$identity['department']} di {$identity['university']}. ";
                 $response .= "Saya di sini untuk membantu Anda dengan berbagai informasi seputar kampus. ";
@@ -258,7 +258,7 @@ class RagService
                 $response .= "* 👥 Himpunan Mahasiswa - profil HMTI, kegiatan, kepengurusan\n";
                 $response .= "* 💼 Lowongan Asisten - lowongan asisten dosen, persyaratan\n";
                 $response .= "* 📰 Berita Alumni - kesuksesan alumni, kegiatan alumni\n\n";
-                // $response .= "* 👨‍🏫 Informasi Dosen - profil dosen, bidang keahlian\n\n";
+                $response .= "* 👨‍🏫 Informasi Dosen - profil dosen, bidang keahlian\n\n";
                 $response .= "Ada yang spesifik yang ingin Anda tanyakan?";
 
                 return $response;
@@ -278,7 +278,7 @@ class RagService
         // 2. Greeting/sapaan
         // 3. Pertanyaan umum tanpa konteks spesifik
 
-        $identityKeywords = ['siapa kamu', 'perkenalkan', 'kamu siapa', 'identitas', 'perkenalan', 'nama kamu', 'kamu siapa', 'kamu dibuat', 'pembuat kamu', 'developer', 'kemampuan', 'bisa apa', 'fitur'];
+        $identityKeywords = ['siapa kamu', 'perkenalkan', 'kamu siapa', 'identitas'];
         $greetingKeywords = ['halo', 'hai', 'hello', 'hi', 'selamat pagi', 'selamat siang', 'selamat sore', 'selamat malam'];
         $generalKeywords = ['help', 'bantuan', 'bantu', 'bisa apa', 'fitur'];
 
@@ -307,7 +307,7 @@ class RagService
     public function generateResponse($prompt)
     {
         try {
-            return $this->openRouterService->generateResponse($prompt);
+            return $this->OllamaService->generateResponse($prompt);
         } catch (\Exception $e) {
             Log::error('RAG Service Error: ' . $e->getMessage());
             return "Maaf, saya sedang mengalami gangguan teknis. Silakan coba lagi nanti.";
