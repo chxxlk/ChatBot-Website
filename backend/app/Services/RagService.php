@@ -98,12 +98,12 @@ class RagService
         foreach ($tablesConfig as $tableName => $config) {
             try {
                 // Gunakan optimized semantic search dengan batch processing
-                $relevantData = $embeddingService->optimizedSemanticSearch(
+                $relevantData = $embeddingService->semanticSearch(
                     $query,
                     $tableName,
                     $config['columns'],
-                    3, // limit
-                    0.6 // threshold - mungkin perlu disesuaikan untuk model baru
+                    5, // limit
+                    0.3 // threshold - mungkin perlu disesuaikan untuk model baru
                 );
 
                 if (!empty($relevantData)) {
@@ -121,7 +121,7 @@ class RagService
                 $result .= $this->{"get" . ucfirst($tableName) . "Data"}($query, true);
             }
         }
-
+        Log::info($result);
         return $result;
     }
 
@@ -141,6 +141,7 @@ class RagService
         }
 
         $queryType = $this->analyzeQueryType($userQuery);
+
         $isSemanticMatch = !empty(trim($context)) && strpos($context, 'INFORMASI') !== false;
 
         $relevansiDatabase = $isSemanticMatch ? 'YA' : 'TIDAK';

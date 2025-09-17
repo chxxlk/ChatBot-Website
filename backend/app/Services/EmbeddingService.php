@@ -34,6 +34,7 @@ class EmbeddingService
 
             $response = Http::withHeaders([
                 'Authorization' => 'Bearer ' . $this->apiKey,
+                'Content-Type' => 'application/json',
             ])->timeout(180)
                 ->post($url, [
                     'model' => $this->model,
@@ -50,18 +51,22 @@ class EmbeddingService
                 $data = $response->json();
 
                 Log::info('HF Raw embedding response: ', $data);
-                Log::info('Embedding berhasil', ['dimensi' => count($data[0] ?? [])]);
+                if (isset($data['data'][0]['embedding'])) {
+                    $emb = $data['data'][0]['embedding'];
 
-                if (is_array($data) && isset($data[0]) && is_array($data[0])) {
-                    return $data[0];
+                    // Jika embedding adalah objek dengan key "0", "1", ... ubah ke array numeric
+                    if (is_array($emb)) {
+                        // Jika associative (misalnya key "0", "1", "2", ...) atau numeric
+                        $vector = array_values($emb);
+                        $dimensi = count($vector);
+
+                        Log::info('Embedding berhasil', ['dimensi' => $dimensi]);
+
+                        return $vector;
+                    }
                 }
-
-                if (isset($data['embedding']) && is_array($data['embedding'])) {
-                    return $data['embedding'];
-                }
-
                 Log::warning('Embedding response tidak sesuai', ['response' => $data]);
-                return null;
+                return $data['embedding']['values'] ?? null;
             }
             Log::error('HF Embedding failed', [
                 'status' => $response->status(),
@@ -88,6 +93,8 @@ class EmbeddingService
             }
             if (! $vector) Log::warning('Embedding gagal untuk text', ['text' => $text]);
         }
+
+        Log::info('Generated batch embeddings', ['embeddings' => $embeddings]);
 
         return $embeddings;
     }
@@ -124,7 +131,7 @@ class EmbeddingService
     /**
      * Semantic search sederhana (per item generate embedding)
      */
-    public function semanticSearch($query, $table, $textColumns, $limit = 5, $threshold = 0.3)
+    public function semanticSearch($query, $table, $textColumns, $limit = null, $threshold = 0.3)
     {
         try {
             $queryEmbedding = $this->generateEmbedding($query);
@@ -169,61 +176,4 @@ class EmbeddingService
         }
     }
 
-    /**
-     * Optimized semantic search (batch generate embeddings)
-     */
-    public function optimizedSemanticSearch($query, $table, $textColumns, $limit = 5, $threshold = 0.3)
-    {
-        Log::info('Optimized semantic search start', ['query' => $query]);
-        try {
-            $queryEmbedding = $this->generateEmbedding($query);
-            if (!$queryEmbedding) {
-                return DB::table($table)->limit($limit)->get();
-            }
-
-            $allData = DB::table($table)->get();
-            $texts = [];
-            $items = [];
-
-            foreach ($allData as $item) {
-                $combinedText = '';
-                foreach ($textColumns as $column) {
-                    if (isset($item->$column)) {
-                        $combinedText .= $item->$column . ' ';
-                    }
-                }
-
-                if (!empty(trim($combinedText))) {
-                    $texts[] = $combinedText;
-                    $items[] = $item;
-                }
-            }
-
-            $embeddings = $this->generateBatchEmbeddings($texts);
-
-            if (count($embeddings) !== count($items)) {
-                Log::warning('Batch embedding count mismatch');
-                return DB::table($table)->limit($limit)->get();
-            }
-
-            $scoredResults = [];
-            for ($i = 0; $i < count($items); $i++) {
-                $similarity = $this->cosineSimilarity($queryEmbedding, $embeddings[$i]);
-
-                if ($similarity >= $threshold) {
-                    $scoredResults[] = [
-                        'item' => $items[$i],
-                        'score' => $similarity,
-                    ];
-                }
-            }
-
-            usort($scoredResults, fn($a, $b) => $b['score'] <=> $a['score']);
-            Log::info('Semantic search selesai', ['scores' => $scoredResults]);
-
-            return array_slice(array_map(fn($r) => $r['item'], $scoredResults), 0, $limit);
-        } catch (\Exception $e) {
-            Log::error('Optimized semantic search error: ' . $e->getMessage());
-        }
-    }
 }
