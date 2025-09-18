@@ -8,12 +8,6 @@ use Illuminate\Support\Facades\Log;
 
 class ChatbotController extends Controller
 {
-    /**
-     * Menangani query dari user dan mengembalikan jawaban yang sesuai.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\Response
-     */
     public function chat(Request $request)
     {
         if ($request->isMethod('OPTIONS')) {
@@ -30,6 +24,7 @@ class ChatbotController extends Controller
 
 
         try {
+            // $RageService = new \App\Services\RagService();
             $RageService = new \App\Services\RagService();
             $response = $RageService->queryWithContext($message);
             // Simpan ke chat history
@@ -44,16 +39,6 @@ class ChatbotController extends Controller
         }
     }
 
-    /**
-     * Semantic search test endpoint.
-     * 
-     * This endpoint is used to test semantic search functionality.
-     * It takes a query as an input and returns the relevant data found
-     * in the database.
-     * 
-     * @param \Illuminate\Http\Request $request
-     * @return \Illuminate\Http\Response
-     */
     public function semanticSearchTest(Request $request)
     {
         try {
@@ -75,12 +60,6 @@ class ChatbotController extends Controller
         }
     }
 
-    /**
-     * Adds CORS headers to a response.
-     * 
-     * @param \Illuminate\Http\Response $response
-     * @return \Illuminate\Http\Response
-     */
     private function addCorsHeaders($response)
     {
         return $response
@@ -90,22 +69,6 @@ class ChatbotController extends Controller
             ->header('Access-Control-Allow-Credentials', 'true');
     }
 
-    /**
-     * Cleans the response format by removing asterisks, replacing bullet points with numbering,
-     * removing multiple newlines, and formatting dates consistently.
-     *
-     * @param string $response The response to clean
-     * @return string The cleaned response
-     */
-
-    /**
-     * Save a chat history entry to the database.
-     *
-     * @param string $userMessage The message sent by the user
-     * @param string $botResponse The response sent by the bot
-     * @param string $sessionId The session ID of the user
-     * @param string $source The source of the response (e.g. 'database', 'gemini', 'rag', 'system')
-     */
     private function saveToHistory($userMessage, $botResponse, $sessionId, $source)
     {
         DB::table('chat_history')->insert([
@@ -118,12 +81,6 @@ class ChatbotController extends Controller
         ]);
     }
 
-    /**
-     * Returns the chat history of a user.
-     * 
-     * @param \Illuminate\Http\Request $request
-     * @return \Illuminate\Http\JsonResponse
-     */
     public function getHistory(Request $request)
     {
         $sessionId = $request->input('session_id', 'default');
@@ -137,14 +94,6 @@ class ChatbotController extends Controller
         return response()->json($history);
     }
 
-    /**
-     * Test the connection to the Laravel 12.x backend.
-     * 
-     * This route is used to test if the connection to the Laravel 12.x backend is working.
-     * 
-     * @return \Illuminate\Http\JsonResponse
-     */
-
     public function testConnection()
     {
         return response()->json([
@@ -153,15 +102,6 @@ class ChatbotController extends Controller
         ]);
     }
 
-    /**
-     * Tests the connection to the database.
-     * 
-     * This route is used to test if the connection to the database is working.
-     * 
-     * @return \Illuminate\Http\JsonResponse
-     * 
-     * @throws \Exception
-     */
     public function testDatabase()
     {
         try {
@@ -183,7 +123,7 @@ class ChatbotController extends Controller
     public function testOpenRouter(Request $request)
     {
         try {
-            $openRouterService = new \App\Services\OpenRouterService();
+            $openRouterService = new \App\Services\ModelService();
 
             // Test connection
             $models = $openRouterService->getModels();

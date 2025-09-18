@@ -1,27 +1,27 @@
 <?php
 
-namespace App\Services;
+namespace App\Services\Ollama;
 
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Http;
+use App\Services\Ollama\OllamaEmbeddingService as OllamaOllamaEmbeddingService;
+use App\Services\Ollama\OllamaService as OllamaOllamaService;
 use Illuminate\Support\Facades\Log;
 
-class RagService
+class OllamaRagService
 {
     private $chatbotIdentity;
-    private $embeddingService;
-    private $openRouterService;
+    private $OllamaEmbeddingService;
+    private $OllamaService;
 
     public function __construct()
     {
         $this->chatbotIdentity = $this->getChatbotIdentity();
-        $this->embeddingService = new EmbeddingService();
-        $this->openRouterService = new ModelService();
+        $this->OllamaEmbeddingService = new OllamaOllamaEmbeddingService();
+        $this->OllamaService = new OllamaOllamaService();
     }
     private function getChatbotIdentity()
     {
         return [
-            'name' => 'Mr, Wacana',
+            'name' => 'Chris',
             'role' => 'Asisten Virtual',
             'department' => 'Program Studi Teknologi Informasi',
             'university' => 'Universitas Kristen Satya Wacana',
@@ -93,16 +93,16 @@ class RagService
             ],
         ];
 
-        $embeddingService = $this->embeddingService;
+        $embeddingService = new OllamaOllamaEmbeddingService;
 
         foreach ($tablesConfig as $tableName => $config) {
             try {
                 // Gunakan optimized semantic search dengan batch processing
-                $relevantData = $embeddingService->semanticSearch(
+                $relevantData = $embeddingService->optimizedSemanticSearch(
                     $query,
                     $tableName,
                     $config['columns'],
-                    5, // limit
+                    3, // limit
                     0.3 // threshold - mungkin perlu disesuaikan untuk model baru
                 );
 
@@ -121,7 +121,7 @@ class RagService
                 $result .= $this->{"get" . ucfirst($tableName) . "Data"}($query, true);
             }
         }
-        Log::info($result);
+
         return $result;
     }
 
@@ -129,7 +129,7 @@ class RagService
     {
         $identity = $this->chatbotIdentity;
 
-        $identityKeywords = ['siapa kamu', 'perkenalkan diri', 'nama kamu', 'identitas', 'kamu siapa', 'perkenalan', 'kamu dibuat', 'pembuat kamu', 'developer', 'kemampuan', 'bisa apa', 'fitur'];
+        $identityKeywords = ['siapa kamu', 'perkenalkan diri', 'nama kamu', 'identitas', 'kamu siapa'];
         $isIdentityQuery = false;
         $needsIntroduction = $this->needsIntroduction($userQuery);
 
@@ -141,7 +141,6 @@ class RagService
         }
 
         $queryType = $this->analyzeQueryType($userQuery);
-
         $isSemanticMatch = !empty(trim($context)) && strpos($context, 'INFORMASI') !== false;
 
         $relevansiDatabase = $isSemanticMatch ? 'YA' : 'TIDAK';
@@ -184,15 +183,15 @@ class RagService
             6. {$introductionInstruction}
             7. Untuk pertanyaan factual (pengumuman, dosen, dll), langsung berikan jawaban tanpa perkenalan
             8. Hanya perkenalkan diri jika ditanya tentang identitas atau untuk greeting
-            9. Gunakan informasi database di bawah jika tersedia
-            10. {$semanticInstruction}
-            11. JANGAN membuat informasi jika tidak ada di database (PENTING)
-            12. Jika informasi tidak lengkap, jelaskan dengan jujur (PENTING)
-            13. Gunakan format yang mudah dibaca
-            14. Susun jawaban dengan rapi dan jelas, tidak perlu menambahkan spasi yang belebihan
-            15. Untuk list, gunakan numbering bukan bullet points
-            16. Bila data tidak ada di database, jawab seadanya. Dan jangan menggunakan data dari luar databse (PENTING)
-            17. Ingat dosen itu tidak termasuk kedalam pengumuman dan informasi yang bisa didapatkan tanpa menayakan secara langsung (misalnya: informasi dosen, data dosen, siapa dosen, dan lain-lain)
+            9. Jawab dengan nada yang {$identity['tone']}
+            10. Gunakan informasi database di bawah jika tersedia
+            11. {$semanticInstruction}
+            12. JANGAN membuat informasi jika tidak ada di database (PENTING)
+            13. Jika informasi tidak lengkap, jelaskan dengan jujur
+            14. Gunakan format yang mudah dibaca
+            15. Susun jawaban dengan rapi dan jelas, tidak perlu menambahkan spasi yang belebihan
+            16. Untuk list, gunakan numbering bukan bullet points
+            17. Bila data tidak ada di database, jawab seadanya. Dan jangan menggunakan data dari luar databse (PENTING)
 
             # INFORMASI DATABASE KAMPUS:
             {$context}
@@ -202,6 +201,7 @@ class RagService
 
             # FORMAT JAWABAN:
             - Awali dengan salam jika appropriate
+            - Jawab dengan menggunakan informasi identitas Anda
             - Referensikan informasi dari database jika relevan
             - Akhiri dengan penawaran bantuan lebih lanjut
             - Boleh tambahkan emote jika appropriate (makasimal 5 emoji)
@@ -234,7 +234,7 @@ class RagService
         $query = strtolower($userQuery);
 
         switch (true) {
-            case str_contains($query, 'siapa kamu') || str_contains($query, 'perkenalkan diri') || str_contains($query, 'nama kamu') || str_contains($query, 'kamu siapa' || str_contains($query, 'perkenalan')):
+            case str_contains($query, 'siapa kamu') || str_contains($query, 'perkenalkan diri') || str_contains($query, 'nama kamu') || str_contains($query, 'kamu siapa'):
                 $response = "Halo! Saya {$identity['name']}, {$identity['role']} dari ";
                 $response .= "{$identity['department']} di {$identity['university']}. ";
                 $response .= "Saya di sini untuk membantu Anda dengan berbagai informasi seputar kampus. ";
@@ -278,7 +278,7 @@ class RagService
         // 2. Greeting/sapaan
         // 3. Pertanyaan umum tanpa konteks spesifik
 
-        $identityKeywords = ['siapa kamu', 'perkenalkan', 'kamu siapa', 'identitas', 'perkenalan', 'nama kamu', 'kamu siapa', 'kamu dibuat', 'pembuat kamu', 'developer', 'kemampuan', 'bisa apa', 'fitur'];
+        $identityKeywords = ['siapa kamu', 'perkenalkan', 'kamu siapa', 'identitas'];
         $greetingKeywords = ['halo', 'hai', 'hello', 'hi', 'selamat pagi', 'selamat siang', 'selamat sore', 'selamat malam'];
         $generalKeywords = ['help', 'bantuan', 'bantu', 'bisa apa', 'fitur'];
 
@@ -307,7 +307,7 @@ class RagService
     public function generateResponse($prompt)
     {
         try {
-            return $this->openRouterService->generateResponse($prompt);
+            return $this->OllamaService->generateResponse($prompt);
         } catch (\Exception $e) {
             Log::error('RAG Service Error: ' . $e->getMessage());
             return "Maaf, saya sedang mengalami gangguan teknis. Silakan coba lagi nanti.";
