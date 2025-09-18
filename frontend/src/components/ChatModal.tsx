@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { ChatInterface } from './ChatInterface';
 import type { Message } from '../types';
+import { testConnection } from '../utils/api';
 
 interface ChatModalProps {
     isOpen: boolean;
@@ -23,6 +24,25 @@ export const ChatModal: React.FC<ChatModalProps> = ({
     onClearChat,
     onClearError,
 }) => {
+    const [connectionStatus, setConnectionStatus] = useState(null);
+    const [didRun, setDidRun] = useState(false);
+    useEffect(() => {
+        const testConnectionAsync = async () => {
+            if (!didRun) {
+                try {
+                    const status = await testConnection();
+                    setConnectionStatus(status);
+                    setDidRun(true);
+                } catch (error) {
+                    console.error('Error in testConnection:', error);
+                }
+            }
+        };
+
+        if (isOpen) {
+            testConnectionAsync();
+        }
+    });
     if (!isOpen) return null;
 
     return (
@@ -39,11 +59,11 @@ export const ChatModal: React.FC<ChatModalProps> = ({
                 <div className="flex items-center justify-between p-4 border-b bg-gradient-to-b from-blue-500 to-white text-white rounded-t-lg">
                     <div className="flex items-center space-x-3">
                         <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
-                            <span className="text-lg">🤖</span>
+                            <img src="../public/logo-uksw.png" alt="UKSW Logo" className="w-full h-full object-cover" />
                         </div>
                         <div className='text-black text-left'>
-                            <h3 className="font-semibold">Chris Assistant</h3>
-                            <p className="text-xs">Online • Siap membantu</p>
+                            <h3 className="font-semibold">TI Assistant</h3>
+                            <p className="text-xs">{connectionStatus ? 'Online' : 'Offline'}</p>
                         </div>
                     </div>
 

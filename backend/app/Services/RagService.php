@@ -192,6 +192,7 @@ class RagService
             14. Susun jawaban dengan rapi dan jelas, tidak perlu menambahkan spasi yang belebihan
             15. Untuk list, gunakan numbering bukan bullet points
             16. Bila data tidak ada di database, jawab seadanya. Dan jangan menggunakan data dari luar databse (PENTING)
+            17. Ingat dosen itu tidak termasuk kedalam pengumuman dan informasi yang bisa didapatkan tanpa menayakan secara langsung (misalnya: informasi dosen, data dosen, siapa dosen, dan lain-lain)
 
             # INFORMASI DATABASE KAMPUS:
             {$context}
@@ -201,7 +202,6 @@ class RagService
 
             # FORMAT JAWABAN:
             - Awali dengan salam jika appropriate
-            - Jawab dengan menggunakan informasi identitas Anda
             - Referensikan informasi dari database jika relevan
             - Akhiri dengan penawaran bantuan lebih lanjut
             - Boleh tambahkan emote jika appropriate (makasimal 5 emoji)
@@ -258,7 +258,7 @@ class RagService
                 $response .= "* 👥 Himpunan Mahasiswa - profil HMTI, kegiatan, kepengurusan\n";
                 $response .= "* 💼 Lowongan Asisten - lowongan asisten dosen, persyaratan\n";
                 $response .= "* 📰 Berita Alumni - kesuksesan alumni, kegiatan alumni\n\n";
-                // $response .= "* 👨‍🏫 Informasi Dosen - profil dosen, bidang keahlian\n\n";
+                $response .= "* 👨‍🏫 Informasi Dosen - profil dosen, bidang keahlian\n\n";
                 $response .= "Ada yang spesifik yang ingin Anda tanyakan?";
 
                 return $response;
