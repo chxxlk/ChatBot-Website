@@ -38,10 +38,6 @@ cp .env.example .env
 cd gemini-chatbot
 npm install
 ```
-### ⚠️ Untuk depedencies bisa dilihat di package.json
-* Frontend : [package.json](./gemini-chatbot/package-lock.json)
-* Backend : [package.json](./gemini-chatbot-backend/package.json)
-
 # ▶️ Usage
 ```
 # Jalankan backend
