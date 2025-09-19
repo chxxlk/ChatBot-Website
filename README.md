@@ -3,17 +3,11 @@
 [![forthebadge](https://forthebadge.com/images/badges/made-with-react.svg)](https://react.dev/)
 [![forthebadge](https://forthebadge.com/images/badges/made-with-php.svg)](https://www.php.net/)
 
-Chatbot Powered by Gemini AI, Custom Chatbots for Specific Websites.
+Chatbot Powered by Model AI, Custom Chatbots for Specific Websites.
 # 📌 Feature
 * Custom Chat
 * Multi-Platform
 * Smart Search
-## Benefit
-### Development
-* 🎯 __Modular component__ structure
-* 🎯 __Reusable components__ untuk future features
-* 🎯 __Maintainable code__ dengan clear separation
-* 🎯 __Scalable architecture__ untuk enhancements
 # Tech Stack
 * *Backend  : Laravel 12, PHP 8.3.16*
 * *Frontend : React + Vite + Typescript*
@@ -32,11 +26,14 @@ git clone https://github.com/chxxlk/Chatbot-Website.git
 cd gemini-chatbot-backend
 composer install
 cp .env.example .env
-# Tambahkan Databse, Gemini API, Cors, dll di .env
+php artisan migration
+# Tambahkan Databse,Model API/Link ke Ollama dari local, Cors, dll di .env
 
 # Masuk folder frontend
 cd gemini-chatbot
 npm install
+cp .env.example .env
+# ganti ke route api kalian
 ```
 # ▶️ Usage
 ```
