@@ -18,29 +18,50 @@ Chatbot Powered by Model AI, Custom Chatbots for Specific Websites.
 ├── frontend/       # React project </br>
 └── README.md       # Dokumentasi</br>
 # 💡 Installation
+* # Clone repo
 ```
-# Clone repo
 git clone https://github.com/chxxlk/Chatbot-Website.git
-
-# Masuk Foleder backend
+```
+## Masuk folder backend
+```
 cd gemini-chatbot-backend
+```
+### Install requirements
+```
 composer install
+```
+### Buat file .env dan isi apa yang diperlukan
+```
 cp .env.example .env
+```
+### Generate Key
+```
+php artisan key:generate
+```
+### Buat migrasi database _(Pastikan sudah mengatur database di file .env)_
+```
 php artisan migration
-# Tambahkan Databse,Model API/Link ke Ollama dari local, Cors, dll di .env
+```
 
-# Masuk folder frontend
+## Masuk folder frontend
+```
 cd gemini-chatbot
+```
+### Instal requirements
+```
 npm install
+```
+### Buat file .env dan isi route ke API backend Laravel _(Default: http://localhost:8000/api)_
+```
 cp .env.example .env
-# ganti ke route api kalian
 ```
 # ▶️ Usage
+* ## Jalankan backend
 ```
-# Jalankan backend
 php artisan serve
-
-# Jalankan frontend
+```
+* ## Jalankan frontend
+```
 npm run dev
 ```
 # 📷 Screenshot
