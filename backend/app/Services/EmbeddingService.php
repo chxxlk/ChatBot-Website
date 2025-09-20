@@ -131,7 +131,7 @@ class EmbeddingService
     /**
      * Semantic search sederhana (per item generate embedding)
      */
-    public function semanticSearch($query, $table, $textColumns, $limit = null, $threshold = 0.3)
+    public function semanticSearch($query, $table, $textColumns, $limit = 5, $threshold = 0.3)
     {
         try {
             $queryEmbedding = $this->generateEmbedding($query);

@@ -125,6 +125,62 @@ class RagService
         return $result;
     }
 
+    private function getPengumumanData($query)
+    {
+        if (strpos($query, 'pengumuman') !== false) {
+            $pengumuman = DB::table('pengumuman')
+                ->get();
+
+            if ($pengumuman->isNotEmpty()) {
+                $result = "INFORMASI PENGUMUMAN:\n";
+                foreach ($pengumuman as $p) {
+                    $result .= "Judul: {$p->judul}\n";
+                    $result .= "Tanggal: {$p->created_at}\n";
+                    $result .= "Isi: " . substr($p->isi, 0, 500) . "...\n\n";
+                }
+                return $result;
+            }
+        }
+        return "";
+    }
+    private function getDosenData($query)
+    {
+        if (strpos($query, 'dosen') !== false) {
+            $dosen = DB::table('dosen')
+                ->get();
+
+            if ($dosen->isNotEmpty()) {
+                $result = "INFORMASI PENGUMUMAN:\n";
+                foreach ($dosen as $p) {
+                    $result .= "Nama Lengkap: {$p->nama_lengkap}\n";
+                    $result .= "Keahloan: {$p->keahlian_rekognisi}\n";
+                    $result .= "Email: {$p->email}";
+                    $result .= "Link: {$p->external_link}";
+                }
+                return $result;
+            }
+        }
+        return "";
+    }
+    private function getLowonganData($query)
+    {
+        if (strpos($query, 'lowongan') !== false) {
+            $lowongan = DB::table('lowongan')
+                ->get();
+
+            if ($lowongan->isNotEmpty()) {
+                $result = "INFORMASI PENGUMUMAN:\n";
+                foreach ($lowongan as $p) {
+                    $result .= "Judul: {$p->judul}\n";
+                    $result .= "Deskripsi: " . substr($p->deskripsi, 0, 200) . "\n";
+                    $result .= "Tanggal: {$p->created_at}";
+                }
+                return $result;
+            }
+        }
+        return "";
+    }
+
     private function buildPrompt($userQuery, $context)
     {
         $identity = $this->chatbotIdentity;
@@ -196,6 +252,17 @@ class RagService
 
             # INFORMASI DATABASE KAMPUS:
             {$context}
+            * Profil Program Studi Teknik Informatika 
+              Program Studi Teknik Informatika UKSW adalah program studi yang berfokus pada pengembangan teknologi informasi dan komputer. Kami menyediakan pendidikan berkualitas tinggi yang mempersiapkan mahasiswa untuk menjadi profesional IT yang kompeten dan inovatif.
+            * Sejarah Program Studi Teknik Informatika 
+              Program Studi Teknik Informatika di Universitas Kristen Satya Wacana didirikan dengan tujuan untuk memenuhi kebutuhan dunia industri akan profesional IT yang berkualitas. 
+              Sejak awal berdirinya, program studi ini telah berfokus pada pengembangan kemampuan praktikal dan teori dalam bidang teknologi informasi. Dengan kurikulum yang terus diperbarui dan fasilitas yang memadai, program studi ini bertujuan untuk menghasilkan lulusan yang siap menghadapi perkembangan teknologi yang cepat di dunia digital. 
+            * Akreditasi Program Studi Teknik Infromatika Berdasarkan Keputusan LAM INFOKOM No. 086/SK/LAM-INFOKOM/Ak/S/VIII/2024, Program Studi Teknik Informatika UKSW telah mendapatkan status: AKREDITASI UNGGUL 
+            * Visi dan Misi 
+              - Visi Menjadi program studi Teknik Informatika terkemuka di Indonesia yang menghasilkan lulusan berkualitas tinggi, inovatif, dan berkompeten dalam pengembangan dan penerapan teknologi informasi untuk kemajuan masyarakat dan industri. 
+              - Misi 1. Menyelenggarakan pendidikan berkualitas tinggi di bidang Teknik Informatika. 2. Melakukan penelitian dan pengembangan teknologi informasi yang bermanfaat. 3. Menjalin kerjasama dengan industri dan masyarakat dalam penerapan teknologi informasi. 4. Mengembangkan karakter mahasiswa yang berkualitas dan profesional. 
+            * Layanan Kampus 1. Siasat (http://siasat.uksw.edu/) 2. Sistem Informasi Tugas Akhir FTI UKSW (http://online.fti.uksw.edu/) 3. IT-Explore : Jurnal Penerapan Teknologi Informasi dan Komunikasi 4. Perpustakaan E-Library UKSW 5. AITI : Jurnal Teknologi Informasi (https://ejournal.uksw.edu/aiti) 
+            * Perusahaan Kerjasama 1. Alfamart 2. CTI Group 3. PT. Purabarutama 4. PT. Sinarmas 5. BANK BCA
 
             # PERTANYAAN USER:
             {$userQuery}
