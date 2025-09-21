@@ -40,7 +40,7 @@ php artisan key:generate
 ```
 ### Buat migrasi database _(Pastikan sudah mengatur database di file .env)_
 ```
-php artisan migration
+php artisan migrate:fresh --seed
 ```
 
 ## Masuk folder frontend
