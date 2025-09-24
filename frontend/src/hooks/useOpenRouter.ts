@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 import { sendChatMessage } from '../utils/api';
 import type { Message, ChatState } from '../types';
 
-export const useGemini = () => {
+export const useOpenRouter = () => {
   const [state, setState] = useState<ChatState>({
     messages: [],
     isLoading: false,

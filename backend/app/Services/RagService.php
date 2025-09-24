@@ -45,7 +45,7 @@ class RagService
         // 2. Augment: Gabungkan dengan prompt yang tepat
         $prompt = $this->buildPrompt($userQuery, $context);
 
-        // 3. Generate: Kirim ke Gemini
+        // 3. Generate: Kirim ke Openrouter
         return $this->generateResponse($prompt);
     }
 
@@ -76,19 +76,22 @@ class RagService
             'pengumuman' => [
                 'columns' => ['judul', 'isi', 'kategori', 'created_at'],
                 'display' => function ($item) {
-                    return "Judul: {$item->judul}\nKategori: {$item->kategori}\nTanggal: {$item->created_at}\nIsi: " . substr($item->isi, 0, 200) . "...\n\n";
+                    $data = $item['data'];
+                    return "Judul: {$data->judul}\nKategori: {$data->kategori}\nTanggal: {$data->created_at}\nIsi: " . substr($data->isi, 0, 200) . "...\n\n";
                 }
             ],
             'dosen' => [
                 'columns' => ['nama_lengkap', 'keahlian_rekognisi', 'email', 'external_link'],
                 'display' => function ($item) {
-                    return "Nama Dosen : {$item->nama_lengkap}\nKeahlian Rekognisi: {$item->keahlian_rekognisi}\nEmail: {$item->email}\nLink: {$item->external_link}\n\n";
+                    $data = $item['data'];
+                    return "Nama Dosen : {$data->nama_lengkap}\nKeahlian Rekognisi: {$data->keahlian_rekognisi}\nEmail: {$data->email}\nLink: {$data->external_link}\n\n";
                 }
             ],
             'lowongan' => [
                 'columns' => ['judul', 'deskripsi', 'link_pendaftaran', 'created_at'],
                 'display' => function ($item) {
-                    return "Judul: {$item->judul}\nDeskripsi: {$item->deskripsi}\nLink: {$item->link_pendaftaran}\nTanggal: {$item->created_at}\n\n";
+                    $data = $item['data'];
+                    return "Judul: {$data->judul}\nDeskripsi: {$data->deskripsi}\nLink: {$data->link_pendaftaran}\nTanggal: {$data->created_at}\n\n";
                 }
             ],
         ];
@@ -101,9 +104,7 @@ class RagService
                 $relevantData = $embeddingService->semanticSearch(
                     $query,
                     $tableName,
-                    $config['columns'],
-                    5, // limit
-                    0.3 // threshold - mungkin perlu disesuaikan untuk model baru
+                    null
                 );
 
                 if (!empty($relevantData)) {
@@ -121,7 +122,7 @@ class RagService
                 $result .= $this->{"get" . ucfirst($tableName) . "Data"}($query, true);
             }
         }
-        Log::info($result);
+        // Log::info($result);
         return $result;
     }
 
@@ -284,7 +285,7 @@ class RagService
         $query = strtolower($query);
         $types = [];
 
-        if (preg_match('/(pengumuman|announcement|news)/', $query)) $types[] = 'PENGUMUMAN';
+        if (preg_match('/(pengumuman|announcement|news|berita)/', $query)) $types[] = 'PENGUMUMAN';
         if (preg_match('/(lowongan|job|vacancy|asisten)/', $query)) $types[] = 'LOWONGAN';
         if (preg_match('/(dosen|lecturer|pengajar)/', $query)) $types[] = 'DOSEN';
 

@@ -16,14 +16,18 @@ class ModelService
         $this->apiKey = env('OPENROUTER_API_KEY');
         $this->model = env('OPENROUTER_MODEL');
         $this->baseUrl = env('OPENROUTER_BASE_URL');
+
+        if (!isset($this->apiKey) || !isset($this->baseUrl) || !isset($this->model)) {
+            throw new \Exception('Missing HuggingFace API key, base URL, or model name.');
+        }
     }
 
     public function generateResponse($prompt)
     {
-        Log::info('Kirim prompt ke OpenRouter', [
-            'model' => $this->model,
-            'prompt_preview' => substr($prompt, 0, 200) . '...' // biar log gak kepanjangan
-        ]);
+        // Log::info('Kirim prompt ke OpenRouter', [
+        //     'model' => $this->model,
+        //     'prompt_preview' => substr($prompt, 0, 200) . '...' // biar log gak kepanjangan
+        // ]);
 
         try {
             $response = Http::timeout(120)
@@ -49,10 +53,10 @@ class ModelService
                     // 'max_tokens' => 1024,
                     'stream' => false
                 ]);
-            Log::info('Response dari OpenRouter', [
-                'status' => $response->status(),
-                'body'   => $response->body()
-            ]);
+            // Log::info('Response dari OpenRouter', [
+            //     'status' => $response->status(),
+            //     'body'   => $response->body()
+            // ]);
 
             if ($response->failed()) {
                 Log::error('OpenRouter API Error: ' . $response->body());

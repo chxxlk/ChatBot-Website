@@ -17,6 +17,10 @@ class EmbeddingService
         $this->apiKey = env('HF_API_KEY');
         $this->baseUrl = env('HF_API_BASE');
         $this->model = env('HF_MODEL');
+
+        if (!isset($this->apiKey) || !isset($this->baseUrl) || !isset($this->model)) {
+            throw new \Exception('Missing HuggingFace API key, base URL, or model name.');
+        }
     }
 
     /**
@@ -50,7 +54,7 @@ class EmbeddingService
             if ($response->successful()) {
                 $data = $response->json();
 
-                Log::info('HF Raw embedding response: ', $data);
+                // Log::info('HF Raw embedding response: ', $data);
                 if (isset($data['data'][0]['embedding'])) {
                     $emb = $data['data'][0]['embedding'];
 
@@ -100,80 +104,73 @@ class EmbeddingService
     }
 
     /**
-     * Hitung cosine similarity antara dua vector
-     */
-    public function cosineSimilarity($vectorA, $vectorB)
-    {
-        if (!$vectorA || !$vectorB || count($vectorA) !== count($vectorB)) {
-            return 0;
-        }
-
-        $dotProduct = 0;
-        $normA = 0;
-        $normB = 0;
-
-        for ($i = 0; $i < count($vectorA); $i++) {
-            $dotProduct += $vectorA[$i] * $vectorB[$i];
-            $normA += $vectorA[$i] ** 2;
-            $normB += $vectorB[$i] ** 2;
-        }
-
-        $normA = sqrt($normA);
-        $normB = sqrt($normB);
-
-        if ($normA == 0 || $normB == 0) {
-            return 0;
-        }
-
-        return $dotProduct / ($normA * $normB);
-    }
-
-    /**
      * Semantic search sederhana (per item generate embedding)
      */
-    public function semanticSearch($query, $table, $textColumns, $limit = 5, $threshold = 0.3)
+    public function semanticSearch(string $query, string $table, $limit = 5, $threshold = 0.3)
     {
-        try {
-            $queryEmbedding = $this->generateEmbedding($query);
-            if (!$queryEmbedding) {
-                Log::warning('Failed to generate query embedding, fallback ke simple search');
-                return DB::table($table)->limit($limit)->get();
-            }
+        // try {
+        //     $queryEmbedding = $this->generateEmbedding($query);
+        //     if (!$queryEmbedding) {
+        //         Log::warning('Failed to generate query embedding, fallback ke simple search');
+        //         return DB::table($table)->limit($limit)->get();
+        //     }
 
-            $allData = DB::table($table)->get();
-            $scoredResults = [];
+        //     $allData = DB::table($table)->get();
+        //     $scoredResults = [];
 
-            foreach ($allData as $item) {
-                $combinedText = '';
-                foreach ($textColumns as $column) {
-                    if (isset($item->$column)) {
-                        $combinedText .= $item->$column . ' ';
-                    }
-                }
+        //     foreach ($allData as $item) {
+        //         $combinedText = '';
+        //         foreach ($textColumns as $column) {
+        //             if (isset($item->$column)) {
+        //                 $combinedText .= $item->$column . ' ';
+        //             }
+        //         }
 
-                if (!empty(trim($combinedText))) {
-                    $itemEmbedding = $this->generateEmbedding($combinedText);
+        //         if (!empty(trim($combinedText))) {
+        //             $itemEmbedding = $this->generateEmbedding($combinedText);
 
-                    if ($itemEmbedding) {
-                        $similarity = $this->cosineSimilarity($queryEmbedding, $itemEmbedding);
+        //             if ($itemEmbedding) {
+        //                 $similarity = $this->cosineSimilarity($queryEmbedding, $itemEmbedding);
 
-                        if ($similarity >= $threshold) {
-                            $scoredResults[] = [
-                                'item' => $item,
-                                'score' => $similarity,
-                            ];
-                        }
-                    }
-                }
-            }
+        //                 if ($similarity >= $threshold) {
+        //                     $scoredResults[] = [
+        //                         'item' => $item,
+        //                         'score' => $similarity,
+        //                     ];
+        //                 }
+        //             }
+        //         }
+        //     }
 
-            usort($scoredResults, fn($a, $b) => $b['score'] <=> $a['score']);
+        //     usort($scoredResults, fn($a, $b) => $b['score'] <=> $a['score']);
 
-            return array_slice(array_map(fn($r) => $r['item'], $scoredResults), 0, $limit);
-        } catch (\Exception $e) {
-            Log::error('Semantic search error: ' . $e->getMessage());
-            return DB::table($table)->limit($limit)->get();
+        //     return array_slice(array_map(fn($r) => $r['item'], $scoredResults), 0, $limit);
+        // } catch (\Exception $e) {
+        //     Log::error('Semantic search error: ' . $e->getMessage());
+        //     return DB::table($table)->limit($limit)->get();
+        // }
+        // 1. Buat embedding query
+        $queryVector = $this->generateEmbedding($query);
+        
+        if (!$queryVector) {
+            Log::warning('❌ Gagal membuat embedding query');
+            return collect();
         }
-    }
 
+        // Ambil hasil + jarak cosine langsung dari Postgres
+        $results = DB::table('embeddings')
+            ->select('row_id', DB::raw("vector <=> '" . '[' . implode(',', $queryVector) . ']' . "' as distance"))
+            ->where('table_name', $table)
+            ->orderBy('distance')
+            ->limit($limit)
+            ->get();
+
+        return $results->map(function ($row) use ($table) {
+            $original = DB::table($table)->find($row->row_id);
+            return [
+                'similarity' => 1 - (float)$row->distance, // 1 = mirip banget, 0 = tidak mirip
+                'data'       => $original,
+            ];
+        });
+    }
 }

@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { ChatModal } from './components/ChatModal';
 import { FloatingChatButton } from './components/FloatingChatButton';
-import { useGemini } from './hooks/useOpenRouter';
+import { useOpenRouter } from './hooks/useOpenRouter';
 import './App.css';
 
 function App() {
-  const { messages, isLoading, error, sendMessage, clearChat, clearError } = useGemini();
+  const { messages, isLoading, error, sendMessage, clearChat, clearError } = useOpenRouter();
   const [isChatOpen, setIsChatOpen] = useState(false);
 
   const handleOpenChat = () => {
