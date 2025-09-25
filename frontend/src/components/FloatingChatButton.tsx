@@ -25,13 +25,13 @@ export const FloatingChatButton: React.FC<FloatingChatButtonProps> = ({
       }}
     >
       <div className="flex items-center justify-center w-full h-full">
-        <span className="text-2xl text-white">🤖</span>
+        <img src="/logo-uksw.png" alt="UKSW Logo" className="w-full h-full object-cover" />
       </div>
 
       {/* Tooltip on hover */}
       {isHovered && (
         <div className="absolute bottom-full right-0 mb-2 px-3 py-2 bg-gray-900 text-white text-sm rounded-lg shadow-lg">
-          Chat dengan Fernando 🤖
+          Chat dengan Asisten TI
           <div className="absolute top-full right-4 w-0 h-0 border-l-4 border-r-4 border-t-4 border-t-gray-900 border-l-transparent border-r-transparent"></div>
         </div>
       )}

@@ -11,21 +11,22 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('users', function (Blueprint $table) {
+        Schema::create('pengumuman', function (Blueprint $table) {
             $table->id();
-            $table->string('name');
-            $table->string('email')->unique();
-            $table->string('password');
-            $table->enum('role', ['superadmin', 'admin', 'user'])->default('user'); // Admin = Dosen, User = Mahasiswa
+            $table->string('judul');
+            $table->text('isi');
+            $table->string('file')->nullable(); // untuk file gambar, video, pdf, dll
+            $table->string('kategori')->nullable();
+            $table->foreignId('user_id')->constrained()->onDelete('cascade'); 
             $table->timestamps();
         });
     }
+
     /**
      * Reverse the migrations.
      */
-    
     public function down(): void
     {
-        Schema::dropIfExists('users');
+        Schema::dropIfExists('pengumuman');
     }
 };

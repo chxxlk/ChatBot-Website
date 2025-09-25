@@ -16,15 +16,22 @@ class ModelService
         $this->apiKey = env('OPENROUTER_API_KEY');
         $this->model = env('OPENROUTER_MODEL');
         $this->baseUrl = env('OPENROUTER_BASE_URL');
+
+        if (!isset($this->apiKey) || !isset($this->baseUrl) || !isset($this->model)) {
+            throw new \Exception('Missing OpenRouter API key, base URL, or model name.');
+        }
     }
 
-    public function generateResponse($prompt)
+    /**
+     * Streaming version: mengirim potongan teks lewat callback.
+     * 
+     * @param string $prompt
+     * @param callable $onChunk menerima satu string (potongan teks)
+     * @return void
+     * @throws \Exception
+     */
+    public function generateStreamedResponse(string $prompt, callable $onChunk): void
     {
-        Log::info('Kirim prompt ke OpenRouter', [
-            'model' => $this->model,
-            'prompt_preview' => substr($prompt, 0, 200) . '...' // biar log gak kepanjangan
-        ]);
-
         try {
             $response = Http::timeout(120)
                 ->withHeaders([
@@ -33,59 +40,97 @@ class ModelService
                     'HTTP-Referer' => env('APP_URL'),
                     'X-Title' => 'S1 TI Chatbot'
                 ])
+                ->withOptions([
+                    'stream' => true,
+                ])
                 ->post($this->baseUrl . '/chat/completions', [
                     'model' => $this->model,
                     'messages' => [
                         [
                             'role' => 'system',
-                            'content' => 'Anda adalah Chris, asisten virtual dari Program Studi Teknologi Informasi UKSW. Jawablah dengan sopan dan informatif dalam Bahasa Indonesia.'
+                            'content' => 'Anda adalah Mr. Wacana, asisten virtual dari Program Studi Teknologi Informasi UKSW. Jawablah dengan sopan dan informatif dalam Bahasa Indonesia.', 
                         ],
                         [
                             'role' => 'user',
                             'content' => $prompt
                         ]
                     ],
-                    'temperature' => 0.7,
-                    // 'max_tokens' => 1024,
-                    'stream' => false
+                    'temperature' => 0.5,
+                    'stream' => true
                 ]);
-            Log::info('Response dari OpenRouter', [
-                'status' => $response->status(),
-                'body'   => $response->body()
-            ]);
 
-            if ($response->failed()) {
-                Log::error('OpenRouter API Error: ' . $response->body());
-                throw new \Exception('Gagal mendapatkan respons dari Model: ' . $response->status());
-            }
+            $stream = $response->toPsrResponse()->getBody();
+            $buffer = '';
 
-            $data = $response->json();
+            while (!$stream->eof()) {
+                $chunk = $stream->read(1024);
+                $buffer .= $chunk;
 
-            if (isset($data['choices'][0]['message']['content'])) {
-                return $data['choices'][0]['message']['content'];
-            } else {
-                Log::error('OpenRouter response format: ' . json_encode($data));
-                throw new \Exception('Format respons tidak sesuai dari OpenRouter');
+                while (($pos = strpos($buffer, "\n")) !== false) {
+                    $line = substr($buffer, 0, $pos);
+                    $buffer = substr($buffer, $pos + 1);
+                    $line = trim($line);
+                    if ($line === '' || strpos($line, ':') === 0) {
+                        continue;
+                    }
+                    if (str_starts_with($line, 'data: ')) {
+                        $json = substr($line, strlen('data: '));
+                        if ($json === '[DONE]') {
+                            // selesai
+                            break 2;
+                        }
+                        $data = json_decode($json, true);
+                        if (isset($data['choices'][0]['delta']['content'])) {
+                            $onChunk($data['choices'][0]['delta']['content']);
+                        }
+                    }
+                }
             }
         } catch (\Exception $e) {
             Log::error('OpenRouter Service Error: ' . $e->getMessage());
+            // Lanjut lempar agar upper layer tahu
             throw new \Exception('Terjadi kesalahan: ' . $e->getMessage());
         }
     }
 
-    public function getModels()
+    /**
+     * (Opsional) Versi “non-streaming” atau untuk fallback,
+     * jika kamu ingin mendukung keduanya.
+     */
+    public function generateResponseOnce(string $prompt): string
     {
-        try {
-            $response = Http::timeout(30)
-                ->withHeaders([
-                    'Authorization' => 'Bearer ' . $this->apiKey,
-                ])
-                ->get($this->baseUrl . '/models');
+        $response = Http::timeout(120)
+            ->withHeaders([
+                'Authorization' => 'Bearer ' . $this->apiKey,
+                'Content-Type' => 'application/json',
+                'HTTP-Referer' => env('APP_URL'),
+                'X-Title' => 'S1 TI Chatbot'
+            ])
+            ->post($this->baseUrl . '/chat/completions', [
+                'model' => $this->model,
+                'messages' => [
+                    [
+                        'role' => 'system',
+                        'content' => 'Anda adalah Chris, asisten virtual dari Program Studi Teknologi Informasi UKSW. Jawablah dengan sopan dan informatif dalam Bahasa Indonesia.'
+                    ],
+                    [
+                        'role' => 'user',
+                        'content' => $prompt
+                    ]
+                ],
+                'temperature' => 0.7,
+                'stream' => false
+            ]);
 
-            return $response->json();
-        } catch (\Exception $e) {
-            Log::error('Failed to fetch models: ' . $e->getMessage());
-            return [];
+        if ($response->failed()) {
+            Log::error('OpenRouter API Error (non-stream): ' . $response->body());
+            throw new \Exception('Gagal mendapatkan respons non-stream');
         }
+        $data = $response->json();
+        if (isset($data['choices'][0]['message']['content'])) {
+            return $data['choices'][0]['message']['content'];
+        }
+        Log::error('OpenRouter non-stream response format: ' . json_encode($data));
+        throw new \Exception('Format respons tidak sesuai (non-stream)');
     }
 }

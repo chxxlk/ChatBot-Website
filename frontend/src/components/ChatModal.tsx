@@ -59,7 +59,7 @@ export const ChatModal: React.FC<ChatModalProps> = ({
                 <div className="flex items-center justify-between p-4 border-b bg-gradient-to-b from-blue-500 to-white text-white rounded-t-lg">
                     <div className="flex items-center space-x-3">
                         <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
-                            <img src="../public/logo-uksw.png" alt="UKSW Logo" className="w-full h-full object-cover" />
+                            <img src="/logo-uksw.png" alt="UKSW Logo" className="w-full h-full object-cover" />
                         </div>
                         <div className='text-black text-left'>
                             <h3 className="font-semibold">TI Assistant</h3>
@@ -81,10 +81,9 @@ export const ChatModal: React.FC<ChatModalProps> = ({
                         messages={messages}
                         isLoading={isLoading}
                         error={error}
-                        onSendMessage={onSendMessage}
-                        onClearChat={onClearChat}
                         onClearError={onClearError}
                         isModal={true}
+                        sessionId={'default'}
                     />
                 </div>
             </div>

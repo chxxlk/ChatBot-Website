@@ -13,19 +13,15 @@ export const MessageBubble: React.FC<MessageBubbleProps> =
   const isUser = message.sender === 'user';
 
   const markdownComponents = {
-    // Contoh custom untuk <strong>
     strong: ({ node, ...props }: any) => (
       <strong className="font-bold text-blue-700" {...props} />
     ),
-    // Contoh custom untuk <li>
     li: ({ node, ...props }: any) => (
       <li className="list-disc ml-6 text-gray-800" {...props} />
     ),
-    // Contoh custom untuk paragraph (<p>)
     p: ({ node, ...props }: any) => (
       <p className="mb-2 leading-relaxed" {...props} />
     ),
-    // Kamu bisa tambahkan elemen lain seperti h1,h2,a,code,dll.
     h1: ({ node, ...props }: any) => (
       <h1 className="text-2xl font-bold my-4" {...props} />
     ),
@@ -41,16 +37,6 @@ export const MessageBubble: React.FC<MessageBubbleProps> =
         {...props}
       />
     ),
-    code: ({ node, inline, className, children, ...props }: any) =>
-      inline ? (
-        <code className="bg-gray-100 px-1 rounded" {...props}>
-          {children}
-        </code>
-      ) : (
-        <pre className="bg-gray-900 text-white p-3 rounded overflow-x-auto">
-          <code>{children}</code>
-        </pre>
-      ),
   };
 
   return (

@@ -11,13 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('dosen', function (Blueprint $table) {
+        Schema::create('chat_history', function (Blueprint $table) {
             $table->id();
-            $table->string('nama_lengkap');
-            $table->text('keahlian_rekognisi')->nullable();
-            $table->string('email')->unique();
-            $table->string('external_link')->nullable();
-            $table->string('photo')->nullable();
+            $table->text('user_message');
+            $table->text('bot_response');
+            $table->string('session_id')->default('default');
+            $table->string('source');
             $table->timestamps();
         });
     }
@@ -27,6 +26,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('dosen');
+        Schema::dropIfExists('chat_history');
     }
 };
