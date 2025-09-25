@@ -1,5 +1,5 @@
 # ChatBot-Website 🚀
-Chatbot Powered by Gemini AI, Custom Chatbots for Specific Websites.
+Chatbot Powered by AI Model, Custom Chatbots for Specific Websites (FTI UKSW Website).
 # 📌 Feature
 * Custom Chat
 * Multi-Platform
