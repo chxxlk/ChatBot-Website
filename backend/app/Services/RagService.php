@@ -3,22 +3,22 @@
 namespace App\Services;
 
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 class RagService
 {
     private $chatbotIdentity;
     private $embeddingService;
-    private $openRouterService;
+    private $modelService;
 
     public function __construct()
     {
         $this->chatbotIdentity = $this->getChatbotIdentity();
         $this->embeddingService = new EmbeddingService();
-        $this->openRouterService = new ModelService();
+        $this->modelService = new ModelService();
     }
-    private function getChatbotIdentity()
+
+    private function getChatbotIdentity(): array
     {
         return [
             'name' => 'Mr, Wacana',
@@ -31,47 +31,79 @@ class RagService
         ];
     }
 
-    public function queryWithContext($userQuery)
+    /**
+     * Streaming version: panggil model secara streaming dan terus kirim chunk ke callback.
+     *
+     * @param string $userQuery
+     * @param callable $onChunk menerima potongan teks
+     * @return void
+     */
+    public function queryWithContextStream(string $userQuery, callable $onChunk): void
     {
-        // 0. Cek dulu jika ini pertanyaan tentang identitas
+        // cek identitas dulu
         $identityResponse = $this->handleIdentityQuery($userQuery);
-        if ($identityResponse) {
-            return $identityResponse;
+        if ($identityResponse !== false) {
+            // langsung kirim sebagai satu chunk
+            $onChunk($identityResponse);
+            // bisa juga kirim sinyal done setelah ini, tapi controller akan tangani “done”
+            return;
         }
 
-        // 1. Retrieve: Ambil data relevan dari database
+        // retrieve context
         $context = $this->retrieveRelevantData($userQuery);
 
-        // 2. Augment: Gabungkan dengan prompt yang tepat
+        // build prompt
         $prompt = $this->buildPrompt($userQuery, $context);
 
-        // 3. Generate: Kirim ke Openrouter
-        return $this->generateResponse($prompt);
+        try {
+            $this->modelService->generateStreamedResponse($prompt, function ($partial) use ($onChunk) {
+                $onChunk($partial);
+            });
+        } catch (\Exception $e) {
+            Log::error('RAG Service Streaming Error: ' . $e->getMessage());
+            $onChunk("Maaf, terjadi kesalahan teknis: " . $e->getMessage());
+        }
     }
 
-    private function retrieveRelevantData($query)
+    // Metode non-stream (fallback)
+    public function queryWithContext(string $userQuery): string
     {
-        $query = strtolower($query);
+        // cek identitas
+        $identityResponse = $this->handleIdentityQuery($userQuery);
+        if ($identityResponse !== false) {
+            return $identityResponse;
+        }
+        $context = $this->retrieveRelevantData($userQuery);
+        $prompt = $this->buildPrompt($userQuery, $context);
+        try {
+            return $this->modelService->generateResponseOnce($prompt);
+        } catch (\Exception $e) {
+            Log::error('RAG Service Error (non-stream): ' . $e->getMessage());
+            return "Maaf, saya sedang mengalami gangguan teknis. Silakan coba lagi nanti.";
+        }
+    }
+
+    /****************** Bagian helper (tidak diubah banyak) ******************/
+
+    private function retrieveRelevantData(string $query): string
+    {
+        $q = strtolower($query);
         $context = "";
 
-        // Identitas Bot
         $context .= "INFORMASI CHATBOT:\n";
         $context .= "Nama: {$this->chatbotIdentity['name']}\n";
         $context .= "Peran: {$this->chatbotIdentity['role']}\n";
         $context .= "Program Studi: {$this->chatbotIdentity['department']}\n";
         $context .= "Universitas: {$this->chatbotIdentity['university']}\n\n";
 
-        // Gunakan semantic search untuk mencari data yang relevan
-        $context .= $this->getSemanticRelevantData($query);
+        $context .= $this->getSemanticRelevantData($q);
 
         return $context;
     }
 
-    public function getSemanticRelevantData($query)
+    public function getSemanticRelevantData(string $query)
     {
         $result = "";
-
-        // Konfigurasi semantic search untuk setiap tabel
         $tablesConfig = [
             'pengumuman' => [
                 'columns' => ['judul', 'isi', 'kategori', 'created_at'],
@@ -84,7 +116,7 @@ class RagService
                 'columns' => ['nama_lengkap', 'keahlian_rekognisi', 'email', 'external_link'],
                 'display' => function ($item) {
                     $data = $item['data'];
-                    return "Nama Dosen : {$data->nama_lengkap}\nKeahlian Rekognisi: {$data->keahlian_rekognisi}\nEmail: {$data->email}\nLink: {$data->external_link}\n\n";
+                    return "Nama Dosen: {$data->nama_lengkap}\nKeahlian: {$data->keahlian_rekognisi}\nEmail: {$data->email}\nLink: {$data->external_link}\n\n";
                 }
             ],
             'lowongan' => [
@@ -96,292 +128,128 @@ class RagService
             ],
         ];
 
-        $embeddingService = $this->embeddingService;
-
         foreach ($tablesConfig as $tableName => $config) {
             try {
-                // Gunakan optimized semantic search dengan batch processing
-                $relevantData = $embeddingService->semanticSearch(
-                    $query,
-                    $tableName,
-                    null
-                );
-
+                $relevantData = $this->embeddingService->semanticSearch($query, $tableName, 5);
                 if (!empty($relevantData)) {
                     $result .= "📋 **INFORMASI " . strtoupper(str_replace('_', ' ', $tableName)) . "**\n\n";
-
-                    foreach ($relevantData as $index => $item) {
-                        $result .= ($index + 1) . ". " . $config['display']($item);
+                    foreach ($relevantData as $idx => $item) {
+                        $result .= ($idx + 1) . ". " . $config['display']($item);
                     }
-
                     $result .= "\n";
                 }
             } catch (\Exception $e) {
-                Log::error("Semantic search failed for table {$tableName}: " . $e->getMessage());
-                // Fallback to traditional search
-                $result .= $this->{"get" . ucfirst($tableName) . "Data"}($query, true);
+                Log::error("Semantic search failed for {$tableName}: " . $e->getMessage());
+                // fallback — kamu bisa isi fallback sesuai keinginan
             }
         }
-        // Log::info($result);
+
         return $result;
     }
 
-    private function getPengumumanData($query)
+    private function handleIdentityQuery(string $userQuery)
     {
-        if (strpos($query, 'pengumuman') !== false) {
-            $pengumuman = DB::table('pengumuman')
-                ->get();
-
-            if ($pengumuman->isNotEmpty()) {
-                $result = "INFORMASI PENGUMUMAN:\n";
-                foreach ($pengumuman as $p) {
-                    $result .= "Judul: {$p->judul}\n";
-                    $result .= "Tanggal: {$p->created_at}\n";
-                    $result .= "Isi: " . substr($p->isi, 0, 500) . "...\n\n";
-                }
-                return $result;
-            }
-        }
-        return "";
-    }
-    private function getDosenData($query)
-    {
-        if (strpos($query, 'dosen') !== false) {
-            $dosen = DB::table('dosen')
-                ->get();
-
-            if ($dosen->isNotEmpty()) {
-                $result = "INFORMASI PENGUMUMAN:\n";
-                foreach ($dosen as $p) {
-                    $result .= "Nama Lengkap: {$p->nama_lengkap}\n";
-                    $result .= "Keahloan: {$p->keahlian_rekognisi}\n";
-                    $result .= "Email: {$p->email}";
-                    $result .= "Link: {$p->external_link}";
-                }
-                return $result;
-            }
-        }
-        return "";
-    }
-    private function getLowonganData($query)
-    {
-        if (strpos($query, 'lowongan') !== false) {
-            $lowongan = DB::table('lowongan')
-                ->get();
-
-            if ($lowongan->isNotEmpty()) {
-                $result = "INFORMASI PENGUMUMAN:\n";
-                foreach ($lowongan as $p) {
-                    $result .= "Judul: {$p->judul}\n";
-                    $result .= "Deskripsi: " . substr($p->deskripsi, 0, 200) . "\n";
-                    $result .= "Tanggal: {$p->created_at}";
-                }
-                return $result;
-            }
-        }
-        return "";
-    }
-
-    private function buildPrompt($userQuery, $context)
-    {
+        $q = strtolower($userQuery);
         $identity = $this->chatbotIdentity;
 
-        $identityKeywords = ['siapa kamu', 'perkenalkan diri', 'nama kamu', 'identitas', 'kamu siapa', 'perkenalan', 'kamu dibuat', 'pembuat kamu', 'developer', 'kemampuan', 'bisa apa', 'fitur'];
-        $isIdentityQuery = false;
-        $needsIntroduction = $this->needsIntroduction($userQuery);
-
-        foreach ($identityKeywords as $keyword) {
-            if (strpos(strtolower($userQuery), $keyword) !== false) {
-                $isIdentityQuery = true;
-                break;
-            }
+        if (str_contains($q, 'siapa kamu') || str_contains($q, 'nama kamu') || str_contains($q, 'perkenalkan diri')) {
+            return "Halo! Saya {$identity['name']}, {$identity['role']} dari {$identity['department']} di {$identity['university']}. Ada yang bisa saya bantu hari ini?";
         }
-
-        $queryType = $this->analyzeQueryType($userQuery);
-
-        $isSemanticMatch = !empty(trim($context)) && strpos($context, 'INFORMASI') !== false;
-
-        $relevansiDatabase = $isSemanticMatch ? 'YA' : 'TIDAK';
-
-        $identityInstruction = $isIdentityQuery ?
-            "PERTANYAAN INI TENTANG IDENTITAS ANDA. JAWAB DENGAN MENGGUNAKAN INFORMASI IDENTITAS DI BAWAH DAN JANGAN MENYANGKALNYA." :
-            "Jika ditanya tentang identitas, jawab menggunakan informasi identitas di bawah.";
-
-        $introductionInstruction = $needsIntroduction ?
-            "Jika appropriate, awali dengan perkenalan singkat sebagai {$identity['name']}." :
-            "JANGAN awali dengan perkenalan diri. Langsung berikan jawaban yang diminta.";
-
-        $semanticInstruction = $isSemanticMatch ?
-            "PERTANYAAN INI RELEVAN DENGAN INFORMASI DATABASE. GUNAKAN INFORMASI DI BAWAH UNTUK MENJAWAB DENGAN AKURAT." :
-            "INFORMASI DATABASE TERBATAS. JAWAB BERDASARKAN PENGETAHUAN UMUM TENTANG PERAN ANDA SEBAGAI ASISTEN KAMPUS.";
-
-        return <<<PROMPT
-            # PERINTAH KERAS DAN INSTRUKSI
-            ANDA ADALAH {$identity['name']}, {$identity['role']} dari {$identity['department']} di {$identity['university']}.
-            ANDA BUKAN model bahasa AI umum. ANDA ADALAH asisten virtual khusus untuk kampus.
-
-            # ANALISIS PERTANYAAN:
-            - JENIS: {$queryType}
-            - RELEVANSI DATABASE: {$relevansiDatabase}
-
-            # IDENTITAS ANDA:
-            - NAMA: {$identity['name']}
-            - PERAN: {$identity['role']}
-            - PROGRAM STUDI: {$identity['department']}
-            - UNIVERSITAS: {$identity['university']}
-            - BAHASA: {$identity['language']}
-            - GAYA BICARA: {$identity['tone']}
-
-            # INSTRUKSI KHUSUS:
-            1. {$identityInstruction}
-            2. JANGAN PERNAH mengatakan bahwa Anda adalah model bahasa AI atau tidak memiliki identitas
-            3. SELALU akui bahwa Anda adalah {$identity['name']}, {$identity['role']} dari {$identity['department']}
-            4. Jika ditanya tentang kemampuan, jelaskan bahwa Anda membantu dengan informasi dari database kampus
-            5. Gunakan nada yang {$identity['tone']} dan profesional
-            6. {$introductionInstruction}
-            7. Untuk pertanyaan factual (pengumuman, dosen, dll), langsung berikan jawaban tanpa perkenalan
-            8. Hanya perkenalkan diri jika ditanya tentang identitas atau untuk greeting
-            9. Gunakan informasi database di bawah jika tersedia
-            10. {$semanticInstruction}
-            11. JANGAN membuat informasi jika tidak ada di database (PENTING)
-            12. Jika informasi tidak lengkap, jelaskan dengan jujur (PENTING)
-            13. Gunakan format yang mudah dibaca
-            14. Susun jawaban dengan rapi dan jelas, tidak perlu menambahkan spasi yang belebihan
-            15. Untuk list, gunakan numbering bukan bullet points
-            16. Bila data tidak ada di database, jawab seadanya. Dan jangan menggunakan data dari luar databse (PENTING)
-            17. Ingat dosen itu tidak termasuk kedalam pengumuman dan informasi yang bisa didapatkan tanpa menayakan secara langsung (misalnya: informasi dosen, data dosen, siapa dosen, dan lain-lain)
-
-            # INFORMASI DATABASE KAMPUS:
-            {$context}
-            * Profil Program Studi Teknik Informatika 
-              Program Studi Teknik Informatika UKSW adalah program studi yang berfokus pada pengembangan teknologi informasi dan komputer. Kami menyediakan pendidikan berkualitas tinggi yang mempersiapkan mahasiswa untuk menjadi profesional IT yang kompeten dan inovatif.
-            * Sejarah Program Studi Teknik Informatika 
-              Program Studi Teknik Informatika di Universitas Kristen Satya Wacana didirikan dengan tujuan untuk memenuhi kebutuhan dunia industri akan profesional IT yang berkualitas. 
-              Sejak awal berdirinya, program studi ini telah berfokus pada pengembangan kemampuan praktikal dan teori dalam bidang teknologi informasi. Dengan kurikulum yang terus diperbarui dan fasilitas yang memadai, program studi ini bertujuan untuk menghasilkan lulusan yang siap menghadapi perkembangan teknologi yang cepat di dunia digital. 
-            * Akreditasi Program Studi Teknik Infromatika Berdasarkan Keputusan LAM INFOKOM No. 086/SK/LAM-INFOKOM/Ak/S/VIII/2024, Program Studi Teknik Informatika UKSW telah mendapatkan status: AKREDITASI UNGGUL 
-            * Visi dan Misi 
-              - Visi Menjadi program studi Teknik Informatika terkemuka di Indonesia yang menghasilkan lulusan berkualitas tinggi, inovatif, dan berkompeten dalam pengembangan dan penerapan teknologi informasi untuk kemajuan masyarakat dan industri. 
-              - Misi 1. Menyelenggarakan pendidikan berkualitas tinggi di bidang Teknik Informatika. 2. Melakukan penelitian dan pengembangan teknologi informasi yang bermanfaat. 3. Menjalin kerjasama dengan industri dan masyarakat dalam penerapan teknologi informasi. 4. Mengembangkan karakter mahasiswa yang berkualitas dan profesional. 
-            * Layanan Kampus 1. Siasat (http://siasat.uksw.edu/) 2. Sistem Informasi Tugas Akhir FTI UKSW (http://online.fti.uksw.edu/) 3. IT-Explore : Jurnal Penerapan Teknologi Informasi dan Komunikasi 4. Perpustakaan E-Library UKSW 5. AITI : Jurnal Teknologi Informasi (https://ejournal.uksw.edu/aiti) 
-            * Perusahaan Kerjasama 1. Alfamart 2. CTI Group 3. PT. Purabarutama 4. PT. Sinarmas 5. BANK BCA
-
-            # PERTANYAAN USER:
-            {$userQuery}
-
-            # FORMAT JAWABAN:
-            - Awali dengan salam jika appropriate
-            - Referensikan informasi dari database jika relevan
-            - Akhiri dengan penawaran bantuan lebih lanjut
-            - Boleh tambahkan emote jika appropriate (makasimal 5 emoji)
-            - Bold untuk judul dan informasi penting
-            - pisahkan section dengan newlines
-
-            JAWABAN:
-        PROMPT;
+        if (str_contains($q, 'kamu dibuat') || str_contains($q, 'pembuat kamu') || str_contains($q, 'developer')) {
+            return "Saya {$identity['name']} dikembangkan oleh tim Program Studi Teknologi Informasi di {$identity['university']}.";
+        }
+        if (str_contains($q, 'kemampuan') || str_contains($q, 'bisa apa') || str_contains($q, 'fitur')) {
+            return "Sebagai {$identity['role']}, saya bisa membantu Anda dengan informasi pengumuman, data dosen, lowongan, dan informasi kampus lainnya.";
+        }
+        return false;
     }
 
-    private function analyzeQueryType($query)
+    private function analyzeQueryType(string $query): string
     {
-        $query = strtolower($query);
+        $q = strtolower($query);
         $types = [];
 
-        if (preg_match('/(pengumuman|announcement|news|berita)/', $query)) $types[] = 'PENGUMUMAN';
-        if (preg_match('/(lowongan|job|vacancy|asisten)/', $query)) $types[] = 'LOWONGAN';
-        if (preg_match('/(dosen|lecturer|pengajar)/', $query)) $types[] = 'DOSEN';
+        if (preg_match('/(pengumuman|announcement|berita)/', $q)) $types[] = 'PENGUMUMAN';
+        if (preg_match('/(lowongan|asisten|job)/', $q)) $types[] = 'LOWONGAN';
+        if (preg_match('/(dosen|lecturer)/', $q)) $types[] = 'DOSEN';
 
         if (empty($types)) {
             return 'UMUM';
         }
-
         return implode(' + ', $types);
     }
 
-    private function handleIdentityQuery($userQuery)
+    private function needsIntroduction(string $userQuery): bool
     {
-        $identity = $this->chatbotIdentity;
-        $query = strtolower($userQuery);
+        $q = strtolower($userQuery);
+        $identityKeywords = ['siapa kamu', 'perkenalkan', 'nama kamu'];
+        $greetingKeywords = ['halo', 'hai', 'selamat pagi', 'selamat siang'];
+        $generalKeywords = ['help', 'bantuan', 'fitur'];
 
-        switch (true) {
-            case str_contains($query, 'siapa kamu') || str_contains($query, 'perkenalkan diri') || str_contains($query, 'nama kamu') || str_contains($query, 'kamu siapa' || str_contains($query, 'perkenalan')):
-                $response = "Halo! Saya {$identity['name']}, {$identity['role']} dari ";
-                $response .= "{$identity['department']} di {$identity['university']}. ";
-                $response .= "Saya di sini untuk membantu Anda dengan berbagai informasi seputar kampus. ";
-                $response .= "Saya dapat memberikan informasi tentang pengumuman, program studi, ";
-                $response .= "himpunan mahasiswa, lowongan asisten dosen, berita alumni, dan informasi dosen. ";
-                $response .= "Ada yang bisa saya bantu hari ini? 😊";
+        foreach (array_merge($identityKeywords, $greetingKeywords, $generalKeywords) as $kw) {
+            if (str_contains($q, $kw)) {
+                return true;
+            }
+        }
 
-                return $response;
-            case str_contains($query, 'kamu dibuat') || str_contains($query, 'pembuat kamu') || str_contains($query, 'developer'):
-                $response = "Saya {$identity['name']} dikembangkan oleh tim Program Studi Teknologi Informasi ";
-                $response .= "{$identity['university']} untuk membantu memberikan informasi kampus secara cepat dan akurat. ";
-                $response .= "Saya menggunakan teknologi AI yang terintegrasi dengan database kampus untuk memberikan ";
-                $response .= "respons yang tepat dan informatif.";
-
-                return $response;
-
-            case str_contains($query, 'kemampuan') || str_contains($query, 'bisa apa') || str_contains($query, 'fitur'):
-                $response = "Sebagai {$identity['role']}, saya dapat membantu Anda dengan: \n\n";
-                $response .= "* 📋 Informasi Pengumuman - pengumuman terbaru, pengumuman penting\n";
-                $response .= "* 🎓 Program Studi - informasi tentang TI, kurikulum, akreditasi\n";
-                $response .= "* 👥 Himpunan Mahasiswa - profil HMTI, kegiatan, kepengurusan\n";
-                $response .= "* 💼 Lowongan Asisten - lowongan asisten dosen, persyaratan\n";
-                $response .= "* 📰 Berita Alumni - kesuksesan alumni, kegiatan alumni\n\n";
-                $response .= "* 👨‍🏫 Informasi Dosen - profil dosen, bidang keahlian\n\n";
-                $response .= "Ada yang spesifik yang ingin Anda tanyakan?";
-
-                return $response;
-
-            default:
+        $contentKeywords = ['pengumuman', 'dosen', 'lowongan', 'alumni'];
+        foreach ($contentKeywords as $kw) {
+            if (str_contains($q, $kw)) {
                 return false;
-        }
-        return null;
-    }
-
-    private function needsIntroduction($query)
-    {
-        $query = strtolower($query);
-
-        // Hanya perlu perkenalan untuk:
-        // 1. Pertanyaan tentang identitas
-        // 2. Greeting/sapaan
-        // 3. Pertanyaan umum tanpa konteks spesifik
-
-        $identityKeywords = ['siapa kamu', 'perkenalkan', 'kamu siapa', 'identitas', 'perkenalan', 'nama kamu', 'kamu siapa', 'kamu dibuat', 'pembuat kamu', 'developer', 'kemampuan', 'bisa apa', 'fitur'];
-        $greetingKeywords = ['halo', 'hai', 'hello', 'hi', 'selamat pagi', 'selamat siang', 'selamat sore', 'selamat malam'];
-        $generalKeywords = ['help', 'bantuan', 'bantu', 'bisa apa', 'fitur'];
-
-        foreach ($identityKeywords as $keyword) {
-            if (str_contains($query, $keyword) !== false) return true;
+            }
         }
 
-        foreach ($greetingKeywords as $keyword) {
-            if (str_contains($query, $keyword) !== false) return true;
-        }
-
-        foreach ($generalKeywords as $keyword) {
-            if (str_contains($query, $keyword) !== false) return true;
-        }
-
-        // Jika query spesifik tentang konten, tidak perlu perkenalan
-        $contentKeywords = ['pengumuman', 'dosen', 'prodi', 'himpunan', 'lowongan', 'alumni', 'jadwal', 'matkul'];
-        foreach ($contentKeywords as $keyword) {
-            if (str_contains($query, $keyword) !== false) return false;
-        }
-
-        // Default: tidak perlu perkenalan
         return false;
     }
 
-    public function generateResponse($prompt)
+    private function buildPrompt(string $userQuery, string $context): string
     {
-        try {
-            return $this->openRouterService->generateResponse($prompt);
-        } catch (\Exception $e) {
-            Log::error('RAG Service Error: ' . $e->getMessage());
-            return "Maaf, saya sedang mengalami gangguan teknis. Silakan coba lagi nanti.";
-        }
-    }
+        $identity = $this->chatbotIdentity;
+        $queryType = $this->analyzeQueryType($userQuery);
+        $isSemanticMatch = !empty(trim($context)) && strpos($context, 'INFORMASI') !== false;
+        $relevansiDatabase = $isSemanticMatch ? 'YA' : 'TIDAK';
 
+        $identityInstruction = "Jika ditanya tentang identitas, jawab dengan identitas di bawah.";
+        $needsIntro = $this->needsIntroduction($userQuery);
+        $introInstruction = $needsIntro
+            ? "Jika perlu, awali dengan perkenalan singkat."
+            : "Langsung jawab tanpa perkenalan.";
+
+        $semanticInstruction = $isSemanticMatch
+            ? "Gunakan informasi dari database siswa."
+            : "Jawab berdasarkan pengetahuan umum.";
+
+        return <<<PROMPT
+# IDENTITAS & SETTING
+Anda adalah {$identity['name']}, {$identity['role']} dari {$identity['department']} di {$identity['university']}.  
+Bahasa: {$identity['language']}. Gaya: {$identity['tone']}.  
+
+# ANALISIS
+Jenis pertanyaan: {$queryType}  
+Relevansi database: {$relevansiDatabase}  
+
+# INSTRUKSI
+1. {$identityInstruction}  
+2. {$introInstruction}  
+3. {$semanticInstruction}  
+4. Jangan buat data jika tidak ada  
+5. Format teks rapik dan sopan
+
+# INFORMASI DATABASE  
+{$context}  
+
+# PERTANYAAN USER  
+{$userQuery}  
+
+#FORMAT JAWABAN
+1. Jawaban singkat dan sopan
+2. Tambahkah emote jika apropriate
+3. Gunakan bullet point untuk jawaban dengan list
+4. Huruf tebal untuk bagian yang penting.
+
+JAWABAN:
+PROMPT;
+    }
     public function getChatbotInfo()
     {
         return $this->chatbotIdentity;

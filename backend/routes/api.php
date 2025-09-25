@@ -5,18 +5,20 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ChatbotController;
 use App\Http\Controllers\ChatbotInfoController;
 
-// Route testing koneksi
 Route::get('/test', [ChatbotController::class, 'testConnection']);
-Route::get('/test-db', [ChatbotController::class, 'testDatabase']);
 
-// Route chatbot
+// versi non-stream chat (POST)
 Route::post('/chat', [ChatbotController::class, 'chat']);
+
+// versi streaming chat (GET) — supaya EventSource di browser bisa pakai GET
+Route::get('/chat/stream', [ChatbotController::class, 'chatStream']);
+
+// Histori jika kamu punya
 Route::get('/history', [ChatbotController::class, 'getHistory']);
 
-
-// cek info dan welcome message
+// Info / welcome
 Route::get('/chatbot/info', [ChatbotInfoController::class, 'getInfo']);
 Route::get('/chatbot/welcome', [ChatbotInfoController::class, 'getWelcomeMessage']);
 
-// test routes untuk OpenRoutes
+// Tes OpenRouter
 Route::get('/test/openrouter', [ChatbotController::class, 'testOpenRouter']);

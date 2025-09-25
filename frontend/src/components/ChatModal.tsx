@@ -81,10 +81,9 @@ export const ChatModal: React.FC<ChatModalProps> = ({
                         messages={messages}
                         isLoading={isLoading}
                         error={error}
-                        onSendMessage={onSendMessage}
-                        onClearChat={onClearChat}
                         onClearError={onClearError}
                         isModal={true}
+                        sessionId={'default'}
                     />
                 </div>
             </div>
