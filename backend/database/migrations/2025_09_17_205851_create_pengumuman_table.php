@@ -12,10 +12,13 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('pengumuman', function (Blueprint $table) {
-            $table->id('id_pengumuman');
+            $table->id();
             $table->string('judul');
             $table->text('isi');
-            $table->date('tanggal');
+            $table->string('file')->nullable(); // untuk file gambar, video, pdf, dll
+            $table->string('kategori')->nullable();
+            $table->foreignId('user_id')->constrained()->onDelete('cascade'); 
+            $table->timestamps();
         });
     }
 

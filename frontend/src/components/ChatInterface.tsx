@@ -53,7 +53,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
           // Fallback welcome message
           const fallbackMsg: Message = {
             id: 'welcome-fallback',
-            text: 'Halo! 👋 Saya Chris, Asisten Virtual dari Program Studi Teknologi Informasi UKSW. Ada yang bisa saya bantu?',
+            text: 'Halo! 👋 Saya Mr. Wacana, Asisten Virtual dari Program Studi Teknologi Informasi UKSW. Ada yang bisa saya bantu?',
             sender: 'ai',
             timestamp: new Date(),
             source: 'system',

@@ -3,7 +3,7 @@ export interface Message {
   text: string;
   sender: 'user' | 'ai';
   timestamp: Date;
-  source?: 'database' | 'gemini' | 'rag' | 'system';
+  source?: 'database' | 'ollama' | 'rag' | 'system';
   isWelcome?: boolean;
 }
 
