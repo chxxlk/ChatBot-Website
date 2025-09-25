@@ -25,7 +25,7 @@ class RagService
             'role' => 'Asisten Virtual',
             'department' => 'Program Studi Teknologi Informasi',
             'university' => 'Universitas Kristen Satya Wacana',
-            'tone' => 'ramah, sopan, dan informatif',
+            'tone' => 'gen-z, dan informatif',
             'language' => 'Bahasa Indonesia yang baik dan benar',
             'limitations' => 'Hanya dapat menjawab berdasarkan informasi dari database kampus'
         ];
@@ -83,8 +83,6 @@ class RagService
         }
     }
 
-    /****************** Bagian helper (tidak diubah banyak) ******************/
-
     private function retrieveRelevantData(string $query): string
     {
         $q = strtolower($query);
@@ -130,7 +128,7 @@ class RagService
 
         foreach ($tablesConfig as $tableName => $config) {
             try {
-                $relevantData = $this->embeddingService->semanticSearch($query, $tableName, 5);
+                $relevantData = $this->embeddingService->semanticSearch($query, $tableName, null);
                 if (!empty($relevantData)) {
                     $result .= "📋 **INFORMASI " . strtoupper(str_replace('_', ' ', $tableName)) . "**\n\n";
                     foreach ($relevantData as $idx => $item) {
@@ -169,8 +167,8 @@ class RagService
         $q = strtolower($query);
         $types = [];
 
-        if (preg_match('/(pengumuman|announcement|berita)/', $q)) $types[] = 'PENGUMUMAN';
-        if (preg_match('/(lowongan|asisten|job)/', $q)) $types[] = 'LOWONGAN';
+        if (preg_match('/(pengumuman|announcement|berita|informasi)/', $q)) $types[] = 'PENGUMUMAN';
+        if (preg_match('/(lowongan|asisten|job|informasi)/', $q)) $types[] = 'LOWONGAN';
         if (preg_match('/(dosen|lecturer)/', $q)) $types[] = 'DOSEN';
 
         if (empty($types)) {
@@ -192,7 +190,7 @@ class RagService
             }
         }
 
-        $contentKeywords = ['pengumuman', 'dosen', 'lowongan', 'alumni'];
+        $contentKeywords = ['pengumuman', 'dosen', 'lowongan'];
         foreach ($contentKeywords as $kw) {
             if (str_contains($q, $kw)) {
                 return false;
@@ -220,35 +218,47 @@ class RagService
             : "Jawab berdasarkan pengetahuan umum.";
 
         return <<<PROMPT
-# IDENTITAS & SETTING
-Anda adalah {$identity['name']}, {$identity['role']} dari {$identity['department']} di {$identity['university']}.  
-Bahasa: {$identity['language']}. Gaya: {$identity['tone']}.  
+            # IDENTITAS & SETTING
+            Anda adalah {$identity['name']}, {$identity['role']} dari {$identity['department']} di {$identity['university']}.  
+            Bahasa: {$identity['language']}. Gaya: {$identity['tone']}.  
 
-# ANALISIS
-Jenis pertanyaan: {$queryType}  
-Relevansi database: {$relevansiDatabase}  
+            # ANALISIS
+            Jenis pertanyaan: {$queryType}  
+            Relevansi database: {$relevansiDatabase}  
 
-# INSTRUKSI
-1. {$identityInstruction}  
-2. {$introInstruction}  
-3. {$semanticInstruction}  
-4. Jangan buat data jika tidak ada  
-5. Format teks rapik dan sopan
+            # INSTRUKSI
+            1. {$identityInstruction}  
+            2. {$introInstruction}  
+            3. {$semanticInstruction}  
+            4. Jangan buat data jika tidak ada  
+            5. Format teks rapi dan sopan
 
-# INFORMASI DATABASE  
-{$context}  
+            # INFORMASI DATABASE  
+            * {$context} 
+            * Profil Program Studi Teknik Informatika 
+              Program Studi Teknik Informatika UKSW adalah program studi yang berfokus pada pengembangan teknologi informasi dan komputer. Kami menyediakan pendidikan berkualitas tinggi yang mempersiapkan mahasiswa untuk menjadi profesional IT yang kompeten dan inovatif.
+            * Sejarah Program Studi Teknik Informatika 
+              Program Studi Teknik Informatika di Universitas Kristen Satya Wacana didirikan dengan tujuan untuk memenuhi kebutuhan dunia industri akan profesional IT yang berkualitas. 
+              Sejak awal berdirinya, program studi ini telah berfokus pada pengembangan kemampuan praktikal dan teori dalam bidang teknologi informasi. Dengan kurikulum yang terus diperbarui dan fasilitas yang memadai, program studi ini bertujuan untuk menghasilkan lulusan yang siap menghadapi perkembangan teknologi yang cepat di dunia digital. 
+            * Akreditasi Program Studi Teknik Infromatika Berdasarkan Keputusan LAM INFOKOM No. 086/SK/LAM-INFOKOM/Ak/S/VIII/2024, Program Studi Teknik Informatika UKSW telah mendapatkan status: AKREDITASI UNGGUL 
+            * Visi dan Misi 
+              - Visi Menjadi program studi Teknik Informatika terkemuka di Indonesia yang menghasilkan lulusan berkualitas tinggi, inovatif, dan berkompeten dalam pengembangan dan penerapan teknologi informasi untuk kemajuan masyarakat dan industri. 
+              - Misi 1. Menyelenggarakan pendidikan berkualitas tinggi di bidang Teknik Informatika. 2. Melakukan penelitian dan pengembangan teknologi informasi yang bermanfaat. 3. Menjalin kerjasama dengan industri dan masyarakat dalam penerapan teknologi informasi. 4. Mengembangkan karakter mahasiswa yang berkualitas dan profesional. 
+            * Layanan Kampus 1. Siasat (http://siasat.uksw.edu/) 2. Sistem Informasi Tugas Akhir FTI UKSW (http://online.fti.uksw.edu/) 3. IT-Explore : Jurnal Penerapan Teknologi Informasi dan Komunikasi 4. Perpustakaan E-Library UKSW 5. AITI : Jurnal Teknologi Informasi (https://ejournal.uksw.edu/aiti) 
+            * Perusahaan Kerjasama 1. Alfamart 2. CTI Group 3. PT. Purabarutama 4. PT. Sinarmas 5. BANK BCA
 
-# PERTANYAAN USER  
-{$userQuery}  
+            # PERTANYAAN USER  
+            {$userQuery}  
 
-#FORMAT JAWABAN
-1. Jawaban singkat dan sopan
-2. Tambahkah emote jika apropriate
-3. Gunakan bullet point untuk jawaban dengan list
-4. Huruf tebal untuk bagian yang penting.
+            #FORMAT JAWABAN
+            1. Jawaban dengan {$identity['tone']}
+            2. Tambahkah emote jika apropriate
+            3. Gunakan bullet point untuk jawaban dengan list
+            4. Huruf tebal untuk bagian yang penting 
+            5. Garis miring untuk Bahasa diluar bahasa Indonesia
 
-JAWABAN:
-PROMPT;
+            JAWABAN:
+        PROMPT;
     }
     public function getChatbotInfo()
     {

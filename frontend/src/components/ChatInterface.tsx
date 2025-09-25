@@ -3,7 +3,7 @@ import { MessageBubble } from './MessageBubble';
 import { InputArea } from './InputArea';
 import type { Message } from '../types';
 import { getWelcomeMessage } from '../utils/api';
-import { streamChat } from '../utils/api';  // impor yang baru
+import { streamChat } from '../utils/api';
 
 interface ChatInterfaceProps {
   messages: Message[];
@@ -11,7 +11,6 @@ interface ChatInterfaceProps {
   error: string | null;
   onClearError: () => void;
   isModal?: boolean;
-  // kita ubah: remove onSendMessage dan onClearChat, karena kita tangani sendiri
   sessionId: string;
 }
 
@@ -89,10 +88,16 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
     // streaming
     let accum = '';
+    let isFirstChunk = true;
     streamChat(
       msg,
       sessionId,
       (chunk) => {
+        // chunk pertama: matikan loading
+        if (isFirstChunk) {
+          setLoading(false);
+          isFirstChunk = false;
+        }
         // setiap chunk diterima, tambahkan ke message AI terakhir atau buat baru
         accum += chunk;
         const aiMsg: Message = {
@@ -135,6 +140,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
             <div className="animate-pulse">Memuat percakapan...</div>
           </div>
         )}
+
         {displayMessages.map((message) => (
           <MessageBubble
             key={message.id}
@@ -142,17 +148,15 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
             isWelcome={message.isWelcome}
           />
         ))}
-        {/* {loading && (
-          <div className="flex justify-start mb-4">
+        {loading && (
+          <div className="flex justify-start mb-4 mt-2">
             <div className="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg max-w-xs">
-              <div className="flex items-center space-x-1">
-                <div className="w-2 h-2 bg-gray-600 rounded-full animate-bounce"></div>
-                <div className="w-2 h-2 bg-gray-600 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                <div className="w-2 h-2 bg-gray-600 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+              <div className="flex items-center space-x-1 text-gray-500">
+                <p className='animate-pulse' style={{ animationDelay: '0.2s' }}>Sedang Mengetik ...</p>
               </div>
             </div>
           </div>
-        )} */}
+        )}
         {error && (
           <div className="flex justify-center mb-4">
             <div className="bg-red-100 border border-red-400 text-red-800 px-4 py-3 rounded-lg relative">

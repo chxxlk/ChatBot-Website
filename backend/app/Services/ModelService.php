@@ -48,14 +48,14 @@ class ModelService
                     'messages' => [
                         [
                             'role' => 'system',
-                            'content' => 'Anda adalah Chris, asisten virtual dari Program Studi Teknologi Informasi UKSW. Jawablah dengan sopan dan informatif dalam Bahasa Indonesia.'
+                            'content' => 'Anda adalah Mr. Wacana, asisten virtual dari Program Studi Teknologi Informasi UKSW. Jawablah dengan sopan dan informatif dalam Bahasa Indonesia.', 
                         ],
                         [
                             'role' => 'user',
                             'content' => $prompt
                         ]
                     ],
-                    'temperature' => 0.7,
+                    'temperature' => 0.5,
                     'stream' => true
                 ]);
 

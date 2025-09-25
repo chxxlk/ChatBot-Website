@@ -106,49 +106,8 @@ class EmbeddingService
     /**
      * Semantic search sederhana (per item generate embedding)
      */
-    public function semanticSearch(string $query, string $table, $limit = 5, $threshold = 0.3)
+    public function semanticSearch(string $query, string $table, $limit)
     {
-        // try {
-        //     $queryEmbedding = $this->generateEmbedding($query);
-        //     if (!$queryEmbedding) {
-        //         Log::warning('Failed to generate query embedding, fallback ke simple search');
-        //         return DB::table($table)->limit($limit)->get();
-        //     }
-
-        //     $allData = DB::table($table)->get();
-        //     $scoredResults = [];
-
-        //     foreach ($allData as $item) {
-        //         $combinedText = '';
-        //         foreach ($textColumns as $column) {
-        //             if (isset($item->$column)) {
-        //                 $combinedText .= $item->$column . ' ';
-        //             }
-        //         }
-
-        //         if (!empty(trim($combinedText))) {
-        //             $itemEmbedding = $this->generateEmbedding($combinedText);
-
-        //             if ($itemEmbedding) {
-        //                 $similarity = $this->cosineSimilarity($queryEmbedding, $itemEmbedding);
-
-        //                 if ($similarity >= $threshold) {
-        //                     $scoredResults[] = [
-        //                         'item' => $item,
-        //                         'score' => $similarity,
-        //                     ];
-        //                 }
-        //             }
-        //         }
-        //     }
-
-        //     usort($scoredResults, fn($a, $b) => $b['score'] <=> $a['score']);
-
-        //     return array_slice(array_map(fn($r) => $r['item'], $scoredResults), 0, $limit);
-        // } catch (\Exception $e) {
-        //     Log::error('Semantic search error: ' . $e->getMessage());
-        //     return DB::table($table)->limit($limit)->get();
-        // }
         // 1. Buat embedding query
         $queryVector = $this->generateEmbedding($query);
         
