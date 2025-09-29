@@ -1,5 +1,7 @@
 # ChatBot-Website 🚀
 Chatbot Powered by AI Model, Custom Chatbots for Specific Websites (FTI UKSW Website).
+[![forthebadge](https://forthebadge.com/images/badges/made-with-react.svg)](https://react.dev/)
+[![forthebadge](https://forthebadge.com/images/badges/made-with-php.svg)](https://www.php.net/)
 # 📌Feature
 * Custom Chat
 * Multi-Platform
@@ -25,6 +27,7 @@ cp .env.example .env
 # Tambahkan Databse, Openrouter API, Hugginface API untuk embedding, Cors, dll di .env
 # Jalankan Migrate dan Seeder
 php artisan migrate:fresh --seed
+# Tambahkan Databse, Openrouter API, Huggingface API, dll di .env
 
 # Masuk folder frontend
 cd frontend
@@ -32,7 +35,8 @@ cp .env.example .env
 # isi base url ke backend
 npm install
 ```
-# ▶️Usage
+
+# ▶️ Usage
 ```
 # Jalankan backend
 php atisan serve --host=0.0.0.0 --route=8000 //untuk running local
