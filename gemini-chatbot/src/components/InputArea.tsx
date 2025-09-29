@@ -24,14 +24,14 @@ export const InputArea: React.FC<InputAreaProps> = ({ onSendMessage, isLoading }
   };
 
   return (
-    <div className="border-t p-4 bg-white">
-      <div className="flex items-center">
+    <div className="p-4 rounded-t-lg">
+      <div className="flex items-center rounded-lg">
         <textarea
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           onKeyPress={handleKeyPress}
           placeholder="Type your message..."
-          className="flex-1 border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+          className="flex-grow px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:border-blue-500 resize-none overflow-hidden"
           rows={1}
           disabled={isLoading}
         />
