@@ -9,27 +9,39 @@ use Illuminate\Support\Facades\DB;
 
 class GenerateEmbeddings extends Command
 {
-    protected $signature = 'embeddings:generate {table}';
-    protected $description = 'Generate embeddings untuk tabel tertentu';
+    protected $signature = 'embeddings:generate';
+    protected $description = 'Generate embeddings untuk tabel pengumuman, lowongan, dosen';
 
     public function handle(EmbeddingService $service)
     {
-        $table = $this->argument('table');
-        $rows = DB::table($table)->get();
+        $tables = ['pengumuman', 'lowongan', 'dosen'];
 
-        foreach ($rows as $row) {
-            $text = implode(' ', array_filter((array)$row)); // gabung semua kolom jadi satu teks
-            $vec = $service->generateEmbedding($text);
+        foreach ($tables as $table) {
+            $this->info("🔄 Proses tabel: {$table}");
 
-            if ($vec) {
-                Embedding::updateOrCreate(
-                    ['table_name' => $table, 'row_id' => $row->id],
-                    ['vector' => $vec]
-                );
-                $this->info("✔️ Row {$row->id} processed");
+            $rows = DB::table($table)->get();
+
+            foreach ($rows as $row) {
+                // Gabung semua kolom jadi string
+                $text = implode(' ', array_filter((array)$row));
+
+                // Generate embedding
+                $vec = $service->generateEmbedding($text);
+
+                if ($vec) {
+                    Embedding::updateOrCreate(
+                        ['table_name' => $table, 'row_id' => $row->id],
+                        ['vector' => $vec]
+                    );
+                    $this->info("✔️ Row {$row->id} processed");
+                } else {
+                    $this->warn("   ⚠️ Row {$row->id} skipped (embedding gagal)");
+                }
             }
+
+            $this->info("✅ Selesai: {$table}");
         }
 
-        $this->info("✅ Embeddings generated for table {$table}");
+        $this->info("🎉 Semua tabel sudah diproses!");
     }
 }

@@ -13,7 +13,7 @@ return new class extends Migration
     public function up(): void
     {
         // pastikan extension pgvector aktif
-        // DB::statement('CREATE EXTENSION IF NOT EXISTS vector');
+        DB::statement('CREATE EXTENSION IF NOT EXISTS vector');
         Schema::create('embeddings', function (Blueprint $table) {
             $table->id();
             $table->string('table_name');

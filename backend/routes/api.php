@@ -20,5 +20,7 @@ Route::get('/history', [ChatbotController::class, 'getHistory']);
 Route::get('/chatbot/info', [ChatbotInfoController::class, 'getInfo']);
 Route::get('/chatbot/welcome', [ChatbotInfoController::class, 'getWelcomeMessage']);
 
-// Tes OpenRouter
+// Tes OpenRouter, Huggingface dam db
 Route::get('/test/openrouter', [ChatbotController::class, 'testOpenRouter']);
+Route::get('/test/hf', [ChatbotController::class, 'testEmbedding']);
+Route::get('/test/db', [ChatbotController::class, 'testDatabase']);

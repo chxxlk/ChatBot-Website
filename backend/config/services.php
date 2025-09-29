@@ -1,5 +1,14 @@
 <?php
 
+function readSecret($paths)
+{
+    foreach ($paths as $path) {
+        if (file_exists($path)) {
+            return trim(file_get_contents($path));
+        }
+    }
+    return null;
+}
 return [
 
     /*
@@ -33,6 +42,22 @@ return [
             'bot_user_oauth_token' => env('SLACK_BOT_USER_OAUTH_TOKEN'),
             'channel' => env('SLACK_BOT_USER_DEFAULT_CHANNEL'),
         ],
+    ],
+    'openrouter' => [
+        'api_key' => readSecret([
+           '/run/secrets/openrouter_key',
+            base_path('../secrets/openrouter_key.txt'),
+        ]),
+        'model' => 'deepseek/deepseek-chat-v3.1:free',
+        'base_url' => 'https://openrouter.ai/api/v1',
+    ],
+    'huggingface' => [
+        'api_key' => readSecret([
+            '/run/secrets/huggingface_key',
+            base_path('../secrets/huggingface_key.txt'),
+        ]),
+        'model' => 'Qwen/Qwen3-Embedding-8B',
+        'base_url' => 'https://router.huggingface.co',
     ],
 
 ];
