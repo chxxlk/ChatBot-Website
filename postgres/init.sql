@@ -101,3 +101,42 @@ CREATE TABLE embeddings (
     updated_at timestamp with time zone DEFAULT now(),
     UNIQUE (table_name, row_id)
 );
+
+-- Superadmin users
+INSERT INTO users (name, email, password, role) VALUES
+('Budi Santoso', 'budi.santoso@example.com', 'hashed_password_1', 'superadmin'),
+('Siti Rahayu', 'siti.rahayu@example.com', 'hashed_password_2', 'superadmin'),
+('Ahmad Wijaya', 'ahmad.wijaya@example.com', 'hashed_password_3', 'superadmin');
+
+-- Admin users  
+INSERT INTO users (name, email, password, role) VALUES
+('Dewi Kurnia', 'dewi.kurnia@example.com', 'hashed_password_4', 'admin'),
+('Rizki Pratama', 'rizki.pratama@example.com', 'hashed_password_5', 'admin'),
+('Maya Sari', 'maya.sari@example.com', 'hashed_password_6', 'admin');
+
+-- Regular users
+INSERT INTO users (name, email, password, role) VALUES
+('Fajar Nugroho', 'fajar.nugroho@example.com', 'hashed_password_7', 'user'),
+('Linda Wati', 'linda.wati@example.com', 'hashed_password_8', 'user'),
+('Hendra Setiawan', 'hendra.setiawan@example.com', 'hashed_password_9', 'user');
+
+INSERT INTO pengumuman (judul, isi, file, kategori, user_id) VALUES
+('Libur Semester Genap', 'Berdasarkan kalender akademik, libur semester genap akan dimulai tanggal 15 Juli 2024', 'kalender_akademik.pdf', 'Academic', 1),
+('Pendaftaran Wisuda', 'Pendaftaran wisuda periode September 2024 dibuka mulai 1 Agustus 2024', 'form_wisuda.pdf', 'Academic', 2),
+('Pemadaman Listrik', 'Akan dilakukan pemadaman listrik untuk pemeliharaan pada tanggal 20 Juli 2024 pukul 09.00-15.00 WIB', NULL, 'Facility', 4),
+('Seminar Kewirausahaan', 'Seminar kewirausahaan dengan tema "Digital Business Strategy" akan diselenggarakan pada 25 Juli 2024', 'poster_seminar.jpg', 'Event', 5),
+('Perpanjangan Masa Studi', 'Batas perpanjangan masa studi untuk mahasiswa angkatan 2020 adalah 31 Agustus 2024', 'sk_rektor.pdf', 'Academic', 1);
+
+INSERT INTO lowongan (judul, deskripsi, file, link_pendaftaran, user_id) VALUES
+('Software Developer', 'Dibutuhkan software developer dengan pengalaman 2 tahun di bidang web development', 'jd_developer.pdf', 'https://career.example.com/dev', 4),
+('Data Analyst', 'Lowongan untuk data analyst dengan kemampuan SQL, Python, dan data visualization', 'jd_analyst.pdf', 'https://career.example.com/analyst', 5),
+('Research Assistant', 'Asisten peneliti untuk proyek artificial intelligence dan machine learning', 'jd_research.pdf', 'https://research.example.com/apply', 2),
+('Marketing Specialist', 'Specialist marketing digital dengan pengalaman di social media marketing', 'jd_marketing.pdf', 'https://career.example.com/marketing', 4),
+('Administrative Staff', 'Staf administrasi untuk mengelola dokumen dan surat-menyurat', 'jd_admin.pdf', 'https://career.example.com/admin', 5);
+
+INSERT INTO dosen (nama_lengkap, keahlian_rekognisi, email, external_link, photo) VALUES
+('Prof. Dr. Indra Gunawan, M.Sc.', 'Artificial Intelligence, Machine Learning, Natural Language Processing', 'indra.gunawan@university.ac.id', 'https://scholar.google.com/indragunawan', 'indra_gunawan.jpg'),
+('Dr. Maria Ulfa, S.T., M.T.', 'Computer Vision, Image Processing, Pattern Recognition', 'maria.ulfa@university.ac.id', 'https://researchgate.net/mariaulfa', 'maria_ulfa.jpg'),
+('Dr. Rudi Hermawan, S.Kom., M.Kom.', 'Database Systems, Big Data, Cloud Computing', 'rudi.hermawan@university.ac.id', 'https://dblp.org/rudihermawan', 'rudi_hermawan.jpg'),
+('Dian Purnama Sari, S.Si., M.Cs.', 'Human-Computer Interaction, User Experience Design, Interaction Design', 'dian.purnama@university.ac.id', 'https://linkedin.com/in/dianpurnama', 'dian_purnama.jpg'),
+('Dr. Eko Prasetyo, M.Inf.Tech.', 'Network Security, Cybersecurity, Cryptography', 'eko.prasetyo@university.ac.id', 'https://github.com/ekoprasetyo', 'eko_prasetyo.jpg');

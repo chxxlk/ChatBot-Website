@@ -13,7 +13,7 @@ services:
       - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
   
   backend:
-    image: chvr2001/chatbot-backend:v1.0
+    image: chvr2001/chatbot-backend:v1.1
     container_name: backend
     environment:
       APP_URL: http://localhost:8000
