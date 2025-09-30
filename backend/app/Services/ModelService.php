@@ -13,12 +13,12 @@ class ModelService
 
     public function __construct()
     {
-        $this->apiKey = env('OPENROUTER_API_KEY');
-        $this->model = env('OPENROUTER_MODEL');
-        $this->baseUrl = env('OPENROUTER_BASE_URL');
+        $this->apiKey = config('services.openrouter.api_key');
+        $this->model = config('services.openrouter.model');
+        $this->baseUrl = config('services.openrouter.base_url');
 
         if (!isset($this->apiKey) || !isset($this->baseUrl) || !isset($this->model)) {
-            throw new \Exception('Missing OpenRouter API key, base URL, or model name.');
+            Log::warning(throw new \Exception('Missing OpenRouter API key, base URL, or model name.'));
         }
     }
 
@@ -38,7 +38,8 @@ class ModelService
                     'Authorization' => 'Bearer ' . $this->apiKey,
                     'Content-Type' => 'application/json',
                     'HTTP-Referer' => env('APP_URL'),
-                    'X-Title' => 'S1 TI Chatbot'
+                    'X-Title' => 'S1 TI Chatbot',
+                    'X-Accel-Buffering: no'
                 ])
                 ->withOptions([
                     'stream' => true,
@@ -91,6 +92,7 @@ class ModelService
             // Lanjut lempar agar upper layer tahu
             throw new \Exception('Terjadi kesalahan: ' . $e->getMessage());
         }
+
     }
 
     /**
@@ -111,7 +113,7 @@ class ModelService
                 'messages' => [
                     [
                         'role' => 'system',
-                        'content' => 'Anda adalah Chris, asisten virtual dari Program Studi Teknologi Informasi UKSW. Jawablah dengan sopan dan informatif dalam Bahasa Indonesia.'
+                        'content' => 'Anda adalah Mr.Wacana, asisten virtual dari Program Studi Teknologi Informasi UKSW. Jawablah dengan sopan dan informatif dalam Bahasa Indonesia.'
                     ],
                     [
                         'role' => 'user',

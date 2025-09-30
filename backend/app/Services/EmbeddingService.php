@@ -5,6 +5,7 @@ namespace App\Services;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use App\Services\Ollama\OllamaEmbeddingService;
 
 class EmbeddingService
 {
@@ -12,17 +13,21 @@ class EmbeddingService
     private $baseUrl;
     private $model;
 
+    private $ollamaService;
+    private $ollamaModel;
+
     public function __construct()
     {
-        $this->apiKey = env('HF_API_KEY');
-        $this->baseUrl = env('HF_API_BASE');
-        $this->model = env('HF_MODEL');
+        $this->apiKey = config('services.huggingface.api_key');
+        $this->baseUrl = config('services.huggingface.base_url');
+        $this->model = config('services.huggingface.model');
+
+        $this->ollamaService = new OllamaEmbeddingService();
 
         if (!isset($this->apiKey) || !isset($this->baseUrl) || !isset($this->model)) {
-            throw new \Exception('Missing HuggingFace API key, base URL, or model name.');
+            throw new \Exception('Missing HuggingFace API key, base URL, or model name. || Ollama base Url or model name.');
         }
     }
-
     /**
      * Generate embedding untuk satu teks
      */
@@ -81,8 +86,9 @@ class EmbeddingService
             Log::error('HF Embedding error: ' . $e->getMessage());
             return null;
         }
+        Log::warning('⚠️ Fallback ke Ollama untuk embedding.');
+        return $this->ollamaService->generateEmbeddingOllama($text);
     }
-
     /**
      * Generate embeddings untuk batch teks
      */
@@ -102,7 +108,6 @@ class EmbeddingService
 
         return $embeddings;
     }
-
     /**
      * Semantic search sederhana (per item generate embedding)
      */
@@ -110,7 +115,7 @@ class EmbeddingService
     {
         // 1. Buat embedding query
         $queryVector = $this->generateEmbedding($query);
-        
+
         if (!$queryVector) {
             Log::warning('❌ Gagal membuat embedding query');
             return collect();

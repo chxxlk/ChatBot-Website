@@ -13,7 +13,6 @@ class ChatbotController extends Controller
     public function chatStream(Request $request)
     {
         if ($request->isMethod('OPTIONS')) {
-            // untuk preflight CORS, bisa kirim header CORS “manual”
             return response('', 200, [
                 'Access-Control-Allow-Origin' => '*',
                 'Access-Control-Allow-Methods' => 'GET, POST, OPTIONS',
@@ -34,15 +33,25 @@ class ChatbotController extends Controller
                 $ragService = app(\App\Services\RagService::class);
                 $accumulated = '';
 
+                if (ob_get_level() > 0) {
+                    ob_flush();
+                }
+                flush();
+
+
                 $ragService->queryWithContextStream($message, function ($chunk) use (&$accumulated) {
                     echo "data: " . json_encode(['chunk' => $chunk]) . "\n\n";
-                    ob_flush();
+                    if (ob_get_level() > 0) {
+                        ob_flush();
+                    }
                     flush();
                     $accumulated .= $chunk;
                 });
 
                 echo "data: " . json_encode(['done' => true]) . "\n\n";
-                ob_flush();
+                if (ob_get_level() > 0) {
+                    ob_flush();
+                }
                 flush();
 
                 try {
@@ -134,6 +143,19 @@ class ChatbotController extends Controller
         ]);
     }
 
+    public function getHistory(Request $request)
+    {
+        $sessionId = $request->input('session_id', 'default');
+
+        $history = DB::table('chat_history')
+            ->where('session_id', $sessionId)
+            ->orderBy('created_at', 'desc')
+            ->limit(20)
+            ->get();
+
+        return response()->json($history);
+    }
+
     public function testConnection()
     {
         return response()->json([
@@ -142,5 +164,62 @@ class ChatbotController extends Controller
         ]);
     }
 
-    // (opsional) jika kamu punya route getHistory atau testDatabase, tambahkan method-nya
+    public function testDatabase()
+    {
+        try {
+            DB::connection()->getPdo();
+            $pengumumanCount = DB::table('pengumuman')->count();
+
+            return response()->json([
+                'message' => 'Database connection successful',
+                'pengumuman_count' => $pengumumanCount,
+                'database' => DB::connection()->getDatabaseName()
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'Database connection failed: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+
+    public function testOpenRouter(Request $request)
+    {
+        try {
+            $openRouterService = new \App\Services\ModelService();
+            $testResponse = $openRouterService->generateResponseOnce('Halo, perkenalkan dirimu!');
+
+            return response()->json([
+                'success' => true,
+                'test_response' => $testResponse,
+                'message' => 'OpenRouter connection successful'
+            ], 200, [], JSON_PRETTY_PRINT);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => $e->getMessage(),
+                'message' => 'OpenRouter connection failed'
+            ], 500, [], JSON_PRETTY_PRINT);
+        }
+    }
+
+    public function testEmbedding(Request $request)
+    {
+        try {
+            $embedingService = new \App\Services\EmbeddingService();
+            $testResponse = $embedingService->generateEmbedding('Halo');
+
+            return response()->json([
+                'success' => true,
+                'test_response' => substr(json_encode($testResponse), 0, 100) . '...',
+                'message' => 'Huggingface connection successful'
+            ], 200, [], JSON_PRETTY_PRINT);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => $e->getMessage(),
+                'message' => 'Embedding connection failed'
+            ], 500, [], JSON_PRETTY_PRINT);
+        }
+    }
 }

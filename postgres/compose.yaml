@@ -1,0 +1,16 @@
+services:
+  website-db:
+    image: pgvector/pgvector:pg17-trixie
+    container_name: website-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: website_ti
+    ports:
+      - "5432:5432"
+    volumes:
+      - mypgdata:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+
+volumes:
+  mypgdata:
