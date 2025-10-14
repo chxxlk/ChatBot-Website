@@ -1,14 +1,4 @@
 <?php
-
-function readSecret($paths)
-{
-    foreach ($paths as $path) {
-        if (file_exists($path)) {
-            return trim(file_get_contents($path));
-        }
-    }
-    return null;
-}
 return [
 
     /*
@@ -44,20 +34,14 @@ return [
         ],
     ],
     'openrouter' => [
-        'api_key' => readSecret([
-           '/run/secrets/openrouter_key',
-            base_path('../secrets/openrouter_key.txt'),
-        ]) ? env('OPENROUTER_API_KEY') : null,
-        'model' => 'deepseek/deepseek-chat-v3.1:free',
-        'base_url' => 'https://openrouter.ai/api/v1',
+        'api_key' => env('OPENROUTER_API_KEY'),
+        'model' => env('OPENROUTER_MODEL'),
+        'base_url' => env('OPENROUTER_BASE_URL'),
     ],
     'huggingface' => [
-        'api_key' => readSecret([
-            '/run/secrets/huggingface_key',
-            base_path('../secrets/huggingface_key.txt'),
-        ]) ? env('HUGGINGFACE_API_KEY') : null,
-        'model' => 'Qwen/Qwen3-Embedding-8B',
-        'base_url' => 'https://router.huggingface.co',
+        'api_key' => env('HUGGINGFACE_API_KEY'),
+        'model' => env('HUGGINGFACE_MODEL'),
+        'base_url' => env('HUGGINGFACE_BASE_URL'),
     ],
 
 ];

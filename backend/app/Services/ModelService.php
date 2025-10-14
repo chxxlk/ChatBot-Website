@@ -13,9 +13,9 @@ class ModelService
 
     public function __construct()
     {
-        $this->apiKey = config('services.openrouter.api_key');
-        $this->model = config('services.openrouter.model');
-        $this->baseUrl = config('services.openrouter.base_url');
+        $this->apiKey = config('services.openrouter.api_key') || env('OPENROUTER_API_KEY');
+        $this->model = config('services.openrouter.model') || env('OPENROUTER_MODEL');
+        $this->baseUrl = config('services.openrouter.base_url') || env('OPENROUTER_BASE_URL');
 
         if (!isset($this->apiKey) || !isset($this->baseUrl) || !isset($this->model)) {
             Log::warning(throw new \Exception('Missing OpenRouter API key, base URL, or model name.'));
