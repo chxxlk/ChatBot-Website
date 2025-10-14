@@ -13,9 +13,9 @@ class ModelService
 
     public function __construct()
     {
-        $this->apiKey = config('services.openrouter.api_key') || env('OPENROUTER_API_KEY');
-        $this->model = config('services.openrouter.model') || env('OPENROUTER_MODEL');
-        $this->baseUrl = config('services.openrouter.base_url') || env('OPENROUTER_BASE_URL');
+        $this->apiKey = config('services.openrouter.api_key');
+        $this->model = config('services.openrouter.model');
+        $this->baseUrl = config('services.openrouter.base_url');
 
         if (!isset($this->apiKey) || !isset($this->baseUrl) || !isset($this->model)) {
             Log::warning(throw new \Exception('Missing OpenRouter API key, base URL, or model name.'));
@@ -49,7 +49,7 @@ class ModelService
                     'messages' => [
                         [
                             'role' => 'system',
-                            'content' => 'Anda adalah Mr. Wacana, asisten virtual dari Program Studi Teknologi Informasi UKSW. Jawablah dengan sopan dan informatif dalam Bahasa Indonesia.', 
+                            'content' => 'Anda adalah Mr. Wacana, asisten virtual dari Program Studi Teknologi Informasi UKSW (Universitas Kristen Satya Wacana). Jawablah dengan sopan dan informatif dalam Bahasa Indonesia.', 
                         ],
                         [
                             'role' => 'user',
@@ -113,7 +113,7 @@ class ModelService
                 'messages' => [
                     [
                         'role' => 'system',
-                        'content' => 'Anda adalah Mr.Wacana, asisten virtual dari Program Studi Teknologi Informasi UKSW. Jawablah dengan sopan dan informatif dalam Bahasa Indonesia.'
+                        'content' => 'Anda adalah Mr.Wacana, asisten virtual dari Program Studi Teknologi Informasi UKSW (Universitas Kristen Satya Wacana). Jawablah dengan sopan dan informatif dalam Bahasa Indonesia.'
                     ],
                     [
                         'role' => 'user',

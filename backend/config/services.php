@@ -39,9 +39,9 @@ return [
         'base_url' => env('OPENROUTER_BASE_URL'),
     ],
     'huggingface' => [
-        'api_key' => env('HUGGINGFACE_API_KEY'),
-        'model' => env('HUGGINGFACE_MODEL'),
-        'base_url' => env('HUGGINGFACE_BASE_URL'),
+        'api_key' => env('HF_API_KEY'),
+        'model' => env('HF_MODEL'),
+        'base_url' => env('HF_BASE_URL'),
     ],
 
 ];
