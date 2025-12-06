@@ -1,2 +1,4 @@
-secrets
 *.txt
+*.yaml
+compose.yaml
+*.old

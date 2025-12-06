@@ -18,10 +18,8 @@ services:
     environment:
       APP_KEY: base64:qC4N0sDOfWg0Mj/9yuAUsLb2Y2FNfcyiaXn/UNIH7wE=
       OPENROUTER_API_KEY: 
-      OPENROUTER_MODEL=: eepseek/deepseek-chat-v3.1:free
+      OPENROUTER_MODEL: google/gemma-3-27b-it:free
       OPENROUTER_BASE_URL: https://openrouter.ai/api/v1
-
-      # EMBEDING dengan model dari Huggingface
       HF_API_KEY: 
       HF_MODEL: Qwen/Qwen3-Embedding-8B
       HF_BASE_URL: https://router.huggingface.co
@@ -38,16 +36,13 @@ services:
       - website-db
     ports:
       - "8000:8000"
-    secrets:
-      - openrouter_key
-      - huggingface_key
     command: >
       sh -c "
         php artisan serve --host=0.0.0.0 --port=8000
       "
 
   frontend:
-    image: chvr2001/chatbot-frontend:v1.0
+    image: chvr2001/chatbot-frontend:1.1
     container_name: frontend
     depends_on:
       - backend
@@ -55,12 +50,6 @@ services:
       - "3000:3000"
     environment:
       VITE_API_BASE_URL: http://localhost:8000
-
-secrets:
-  openrouter_key:
-    file: ./secrets/openrouter_key.txt
-  huggingface_key:
-    file: ./secrets/huggingface_key.txt
-
+      
 volumes:
   dbdata:

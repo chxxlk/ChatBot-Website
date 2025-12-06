@@ -1,4 +1,5 @@
 FROM composer:2 AS vendor
+# FROM composer:2-php8.3 AS vendor
 
 WORKDIR /app
 COPY . . 
@@ -9,7 +10,7 @@ FROM dunglas/frankenphp:php8.3
 
 # ENV SERVER_NAME=your-domain-name.example.com
 # If you want to disable HTTPS, use this value instead:
-ENV SERVER_NAME=":80"
+ENV SERVER_NAME=":8080"
 
 RUN install-php-extensions \
   pgsql \

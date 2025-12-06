@@ -16,7 +16,7 @@ export const FloatingChatButton: React.FC<FloatingChatButtonProps> = ({
       onClick={onOpen}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      className={`fixed bottom-6 right-6 w-16 h-16 rounded-full shadow-2xl transition-all duration-300 ease-in-out transform hover:scale-110 ${
+      className={`fixed bottom-6 right-6 w-12 h-12 rounded-full shadow-2xl transition-all duration-300 ease-in-out transform hover:scale-110 ${
         isOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'
       }`}
       style={{
