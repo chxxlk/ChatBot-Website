@@ -13,7 +13,7 @@ services:
       - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
   
   backend:
-    image: chvr2001/chatbot-backend:v1.3
+    image: chvr2001/backend:v1.2
     container_name: backend
     environment:
       APP_KEY: base64:qC4N0sDOfWg0Mj/9yuAUsLb2Y2FNfcyiaXn/UNIH7wE=

@@ -33,6 +33,7 @@ export const InputArea: React.FC<InputAreaProps> = ({ onSendMessage, isLoading }
           placeholder="Kirim Pesan..."
           className="flex-grow px-4 py-3 rounded-lg border bg-white border-gray-300 focus:outline-none focus:border-blue-500 resize-none overflow-hidden "
           rows={1}
+          autoFocus
           disabled={isLoading}
         />
         <button

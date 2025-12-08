@@ -152,7 +152,9 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
           <div className="flex justify-start mb-4 mt-2">
             <div className="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg max-w-xs">
               <div className="flex items-center space-x-1 text-gray-500">
-                <p className='animate-pulse' style={{ animationDelay: '0.2s' }}>Sedang Mengetik ...</p>
+                <span className='animate-bounce bg-blue-500 rounded-full w-2 h-2' style={{ animationDelay: '0.2s' }}></span>
+                <span className='animate-bounce bg-blue-500 rounded-full w-2 h-2' style={{ animationDelay: '0.3s' }}></span>
+                <span className='animate-bounce bg-blue-500 rounded-full w-2 h-2' style={{ animationDelay: '0.4s' }}></span>
               </div>
             </div>
           </div>

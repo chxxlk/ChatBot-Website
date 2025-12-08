@@ -22,7 +22,7 @@ class EmbeddingService
         $this->baseUrl = config('services.huggingface.base_url');
         $this->model = config('services.huggingface.model');
 
-        $this->ollamaService = new OllamaEmbeddingService();
+        // $this->ollamaService = new OllamaEmbeddingService();
 
         if (!isset($this->apiKey) || !isset($this->baseUrl) || !isset($this->model)) {
             throw new \Exception('Missing HuggingFace API key, base URL, or model name. || Ollama base Url or model name.');
