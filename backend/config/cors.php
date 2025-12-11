@@ -17,11 +17,10 @@ return [
 
     'paths' => ['api/*', 'sanctum/csrf-cookie'],
     'allowed_methods' => ['*'],
-    'allowed_origins' => ['*'], //ganti dengan domain yang diinginkan
+    'allowed_origins' => ['*', 'http://localhost:3000', 'http://192.168.18.13:3000'], //ganti dengan domain yang diinginkan
     'allowed_origins_patterns' => [],
     'allowed_headers' => ['*'],
     'exposed_headers' => [],
     'max_age' => 0,
     'supports_credentials' => false,
-
 ];

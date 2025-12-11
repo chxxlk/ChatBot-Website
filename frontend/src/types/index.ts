@@ -1,9 +1,9 @@
 export interface Message {
   id: string;
   text: string;
-  sender: 'user' | 'ai';
+  sender: 'user' | 'ai' | 'system';
   timestamp: Date;
-  source?: 'database' | 'ollama' | 'rag' | 'system';
+  source?: string;
   isWelcome?: boolean;
 }
 

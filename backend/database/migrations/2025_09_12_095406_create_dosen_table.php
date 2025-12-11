@@ -11,13 +11,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('pengumuman', function (Blueprint $table) {
+        Schema::create('dosen', function (Blueprint $table) {
             $table->id();
-            $table->string('judul');
-            $table->text('isi');
-            $table->string('file')->nullable(); // untuk file gambar, video, pdf, dll
-            $table->string('kategori')->nullable();
-            $table->foreignId('user_id')->constrained()->onDelete('cascade'); 
+            $table->string('nama_lengkap');
+            $table->text('keahlian_rekognisi')->nullable();
+            $table->string('email')->unique();
+            $table->string('external_link')->nullable();
+            $table->string('photo')->nullable();
             $table->timestamps();
         });
     }
@@ -27,6 +27,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('pengumuman');
+        Schema::dropIfExists('dosen');
     }
 };

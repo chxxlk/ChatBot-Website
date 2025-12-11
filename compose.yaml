@@ -1,0 +1,55 @@
+services:
+  website-db:
+    image: pgvector/pgvector:pg17-trixie
+    container_name: website-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: website_ti
+    ports:
+      - "5432:5432"
+    volumes:
+      - dbdata:/var/lib/postgresql/data
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+  
+  backend:
+    image: chvr2001/chatbot-backend:v1.2
+    container_name: backend
+    environment:
+      APP_KEY: base64:qC4N0sDOfWg0Mj/9yuAUsLb2Y2FNfcyiaXn/UNIH7wE=
+      OPENROUTER_API_KEY: 
+      OPENROUTER_MODEL: google/gemma-3-27b-it:free
+      OPENROUTER_BASE_URL: https://openrouter.ai/api/v1
+      HF_API_KEY: 
+      HF_MODEL: Qwen/Qwen3-Embedding-8B
+      HF_BASE_URL: https://router.huggingface.co
+      APP_URL: http://localhost:8000
+      OLLAMA_BASE_URL: http://localhost:12434
+      OLLAMA_EMBEDDING_MODEL: embeddinggemma:latest
+      DB_CONNECTION: pgsql
+      DB_HOST: website-db
+      DB_PORT: 5432
+      DB_DATABASE: website_ti
+      DB_USERNAME: postgres
+      DB_PASSWORD: admin
+    depends_on:
+      - website-db
+    ports:
+      - "8000:8000"
+    command: >
+      sh -c "
+        php artisan serve --host=0.0.0.0 --port=8000
+      "
+
+  frontend:
+    image: chvr2001/chatbot-frontend:v1.1
+    container_name: frontend
+    depends_on:
+      - backend
+    ports:
+      - "3000:3000"
+    environment:
+      VITE_API_BASE_URL: http://localhost:8000
+      
+volumes:
+  dbdata:

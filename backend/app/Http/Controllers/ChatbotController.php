@@ -5,9 +5,86 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Symfony\Component\HttpFoundation\StreamedResponse;
+use App\Services\RagService;
 
 class ChatbotController extends Controller
 {
+    public function chatStream(Request $request)
+    {
+        if ($request->isMethod('OPTIONS')) {
+            return response('', 200, [
+                'Access-Control-Allow-Origin' => '*',
+                'Access-Control-Allow-Methods' => 'GET, POST, OPTIONS',
+                'Access-Control-Allow-Headers' => 'Content-Type, Authorization, X-Requested-With',
+            ]);
+        }
+
+        $request->validate([
+            'message' => 'required|string',
+            'session_id' => 'nullable|string'
+        ]);
+
+        $message = $request->input('message');
+        $sessionId = $request->input('session_id', 'default');
+
+        $response = new StreamedResponse(
+            function () use ($message, $sessionId) {
+                $ragService = app(\App\Services\RagService::class);
+                $accumulated = '';
+
+                if (ob_get_level() > 0) {
+                    ob_flush();
+                }
+                flush();
+
+
+                $ragService->queryWithContextStream($message, function ($chunk) use (&$accumulated) {
+                    echo "data: " . json_encode(['chunk' => $chunk]) . "\n\n";
+                    if (ob_get_level() > 0) {
+                        ob_flush();
+                    }
+                    flush();
+                    $accumulated .= $chunk;
+                });
+
+                echo "data: " . json_encode(['done' => true]) . "\n\n";
+                if (ob_get_level() > 0) {
+                    ob_flush();
+                }
+                flush();
+
+                try {
+                    DB::table('chat_history')->insert([
+                        'user_message' => $message,
+                        'bot_response' => $accumulated,
+                        'session_id' => $sessionId,
+                        'source' => 'rag',
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                } catch (\Throwable $e) {
+                    Log::error("Gagal menyimpan histori chat: " . $e->getMessage());
+                }
+            },
+            200,
+            [
+                'Content-Type' => 'text/event-stream',
+                'Cache-Control' => 'no-cache',
+                'Connection' => 'keep-alive',
+                'X-Accel-Buffering' => 'no',
+
+                // header CORS di sini
+                'Access-Control-Allow-Origin' => '*',
+                'Access-Control-Allow-Methods' => 'GET, POST, OPTIONS',
+                'Access-Control-Allow-Headers' => 'Content-Type, Authorization, X-Requested-With',
+            ]
+        );
+
+        return $response;
+    }
+
+
     public function chat(Request $request)
     {
         if ($request->isMethod('OPTIONS')) {
@@ -22,41 +99,26 @@ class ChatbotController extends Controller
         $message = $request->input('message');
         $sessionId = $request->input('session_id', 'default');
 
-
         try {
-            // $RageService = new \App\Services\RagService();
-            $RageService = new \App\Services\RagService();
-            $response = $RageService->queryWithContext($message);
-            // Simpan ke chat history
-            $this->saveToHistory($message, $response, $sessionId, 'rag');
+            $ragService = app(RagService::class);
+            $full = '';
+            $ragService->queryWithContextStream($message, function ($chunk) use (&$full) {
+                $full .= $chunk;
+            });
+            $this->saveToHistory($message, $full, $sessionId, 'rag');
 
             return $this->addCorsHeaders(response()->json([
-                'response' => $response,
-                'source' => 'rag'
-            ]));
+                'success' => true,
+                'response' => $full,
+                'source' => 'rag',
+                'session_id' => $sessionId
+            ], 200));
         } catch (\Exception $e) {
             Log::error('Chat error: ' . $e->getMessage());
-        }
-    }
-
-    public function semanticSearchTest(Request $request)
-    {
-        try {
-            $query = $request->input('query', '');
-            $ragService = new \App\Services\RagService();
-
-            // Test semantic search
-            $context = $ragService->getSemanticRelevantData($query);
-
-            return response()->json([
-                'query' => $query,
-                'context' => $context,
-                'success' => true
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'error' => 'Semantic search test failed: ' . $e->getMessage()
-            ], 500);
+            return $this->addCorsHeaders(response()->json([
+                'success' => false,
+                'error' => 'Chat error: ' . $e->getMessage()
+            ], 500));
         }
     }
 
@@ -97,7 +159,7 @@ class ChatbotController extends Controller
     public function testConnection()
     {
         return response()->json([
-            'message' => 'Laravel 12.x backend is working!',
+            'message' => 'Backend Laravel is working!',
             'timestamp' => now()
         ]);
     }
@@ -120,29 +182,44 @@ class ChatbotController extends Controller
         }
     }
 
+
     public function testOpenRouter(Request $request)
     {
         try {
             $openRouterService = new \App\Services\ModelService();
-
-            // Test connection
-            $models = $openRouterService->getModels();
-
-            // Test chat
-            $testResponse = $openRouterService->generateResponse('Halo, perkenalkan dirimu!');
+            $testResponse = $openRouterService->generateResponseOnce('Halo, perkenalkan dirimu!');
 
             return response()->json([
                 'success' => true,
-                'models' => $models,
                 'test_response' => $testResponse,
                 'message' => 'OpenRouter connection successful'
-            ]);
+            ], 200, [], JSON_PRETTY_PRINT);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
                 'error' => $e->getMessage(),
                 'message' => 'OpenRouter connection failed'
-            ], 500);
+            ], 500, [], JSON_PRETTY_PRINT);
+        }
+    }
+
+    public function testEmbedding(Request $request)
+    {
+        try {
+            $embedingService = new \App\Services\EmbeddingService();
+            $testResponse = $embedingService->generateEmbedding('Halo');
+
+            return response()->json([
+                'success' => true,
+                'test_response' => substr(json_encode($testResponse), 0, 100) . '...',
+                'message' => 'Huggingface connection successful'
+            ], 200, [], JSON_PRETTY_PRINT);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => $e->getMessage(),
+                'message' => 'Embedding connection failed'
+            ], 500, [], JSON_PRETTY_PRINT);
         }
     }
 }

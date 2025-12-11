@@ -1,0 +1,4 @@
+*.txt
+*.yaml
+compose.yaml
+*.old

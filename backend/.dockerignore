@@ -1,0 +1,41 @@
+# File dan folder umum yang tidak perlu masuk ke image
+node_modules
+vendor
+.env
+# .env.*
+*.log
+storage/*.key
+storage/logs/*
+storage/framework/cache/*
+storage/framework/sessions/*
+storage/framework/views/*
+
+# Git
+.git
+.gitignore
+
+# # Composer & npm
+# composer.lock
+# package-lock.json
+# yarn.lock
+
+# # IDE/editor config
+# *.swp
+# *.swo
+# *.swn
+# *.bak
+# *.tmp
+# *.DS_Store
+# *.idea
+# *.vscode
+# *.phpstorm.meta.php
+
+# Docker sendiri
+.dockerignore
+Dockerfile
+docker-compose.yml
+
+# # OS atau file sampah
+# Thumbs.db
+# ehthumbs.db
+# Desktop.ini
