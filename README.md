@@ -18,12 +18,14 @@ Chatbot Powered by AI Model, Custom Chatbots for Specific Websites (FTI UKSW Web
 >└── README.md       # Dokumentasi</br>
 # 💡Installation
 ```
-# Clone repo
 git clone https://github.com/chxxlk/Chatbot-Website.git
 
 # Masuk Foleder backend
 cd backend
 composer install
+```
+### Buat file .env dan isi apa yang diperlukan
+```
 cp .env.example .env
 # Tambahkan Databse, Openrouter API, Hugginface API untuk embedding, Cors, dll di .env
 # Jalankan Migrate dan Seeder
@@ -38,6 +40,7 @@ npm install
 ```
 
 # ▶️ Usage
+* ## Jalankan backend
 ```
 # Jalankan backend
 php atisan serve --host=0.0.0.0 --route=8000 //untuk running local
