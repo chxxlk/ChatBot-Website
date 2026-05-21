@@ -134,16 +134,16 @@ The system combines:
 
 ```
 User → Frontend (React) → HTTP/SSE → Backend (Laravel)
-                                         │
-                                    ┌─────┴──────┐
-                                    │  OpenRouter │
-                                    │  (LLM)      │
-                                    └─────┬──────┘
-                                          │
-                                    ┌─────┴──────┐
-                                    │  pgvector   │
-                                    │  (RAG)      │
-                                    └────────────┘
+                                                                                          |
+                                                                ┌─────┴──────┐
+                                                                │  OpenRouter                          |
+                                                                │  (LLM)                                      |
+                                                                └─────┬──────┘
+                                                                                          |
+                                                                ┌─────┴──────┐
+                                                                │  pgvector                                |
+                                                                │  (RAG)                                      |
+                                                                └────────────┘
 ```
 
 1. User sends a message via the floating chat button
